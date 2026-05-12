@@ -3,13 +3,20 @@
   "version": "0.1.0",
   "description": "DRX compiler for React and Next.js projects",
   "type": "module",
+  "private": true,
+  "packageManager": "pnpm@11.1.1",
   "license": "MIT",
   "author": "Liliana Cristina Silva Carvalho",
+  "homepage": "https://github.com/dovaldev/drx#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dovaldev/drx.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dovaldev/drx/issues"
+  },
   "engines": {
     "node": ">=18"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "keywords": [
     "react",
@@ -23,7 +30,7 @@
   "files": [
     "dist",
     "README.md",
-    "docs"
+    "LICENSE"
   ],
   "bin": {
     "drx": "dist/cli.js",
@@ -37,18 +44,18 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "chokidar": "latest",
-    "commander": "latest",
-    "fast-glob": "latest",
-    "fs-extra": "latest",
-    "prettier": "latest",
-    "typescript": "latest"
+    "chokidar": "5.0.0",
+    "commander": "14.0.3",
+    "fast-glob": "3.3.3",
+    "fs-extra": "11.3.5",
+    "prettier": "3.8.3",
+    "typescript": "6.0.3"
   },
   "devDependencies": {
-    "@types/fs-extra": "latest",
-    "@types/node": "latest",
-    "tsup": "latest",
-    "tsx": "latest",
-    "vitest": "latest"
+    "@types/fs-extra": "11.0.4",
+    "@types/node": "25.6.2",
+    "tsup": "8.5.1",
+    "tsx": "4.21.0",
+    "vitest": "4.1.6"
   }
 }
