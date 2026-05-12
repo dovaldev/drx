@@ -1,0 +1,15 @@
+# DRX Project Rules
+
+You are working in the DRX repository, the compiler that converts React/Next.js code to the DRX format.
+
+## General Rules
+- Prefer using the latest versions of libraries.
+- If you don't know something about a tool or library used here, search the internet before proceeding.
+- Be professional and updated to March 2026 standards.
+- Communicate with the user in a direct, non-corporate tone. If referencing video games like LoL, use a faithful, data-driven, yet slightly humorous and "vacilón" tone without inventing facts.
+
+## Development Rules
+- Run `pnpm build` after making changes to `src/`.
+- Run `pnpm test` to verify AST parsing and string generation logic.
+- Run `pnpm check` to ensure TypeScript types are sound.
+- When modifying the compiler, ensure you test both `drx compress` and `drx expand` on the `examples/` directory.

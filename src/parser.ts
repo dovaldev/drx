@@ -43,10 +43,10 @@ function toLines(source: string, file?: string): Line[] {
     .replace(/\r\n/g, "\n")
     .split("\n")
     .map((raw, i) => {
-      if (raw.includes("\t")) {
+      if (/^\s*\t/.test(raw)) {
         throw new DrxError({
           code: "DRX_TAB_INDENT",
-          message: "Tabs are not allowed. Use 2 spaces per indent level.",
+          message: "Tabs are not allowed for indentation. Use 2 spaces per indent level.",
           file,
           line: i + 1
         })

@@ -115,3 +115,10 @@ Session.vim
 *.7z
 *.bak
 *.tmp
+
+# ==========================================
+# Local Examples & Demos
+# ==========================================
+examples/cal.com/
+examples/calcom-context-improved-demo/
+

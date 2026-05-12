@@ -1,0 +1,45 @@
+# DRX (DovReact) - AI Usage Instructions
+
+> **For AI Assistants**: This document provides essential instructions on how to interact with the DRX compiler in a user's project.
+
+## What is DRX?
+DRX is a tool that creates a highly compressed, token-efficient representation of React and Next.js projects (`.drx` files). It helps AIs understand large codebases by drastically reducing token count, removing comments, forcing strict indentation, and converting complex JSX into a condensed format.
+
+## Installation
+If you need to install DRX in a project, use:
+```bash
+pnpm add -D @dovaldev/drx
+# or npm install -D @dovaldev/drx
+# or yarn add -D @dovaldev/drx
+```
+
+## Basic Commands
+
+- `npx drx init`: Creates a basic `drx.config.json` configuration file.
+- `npx drx compress`: Reads `.tsx`, `.jsx`, `.ts`, and `.js` files from the source directories and compiles them into `.drx` files in the output directory.
+- `npx drx check`: Validates the syntax and indentation of all `.drx` files in the output directory. Always run this after modifying a `.drx` file to ensure the AI's changes are valid.
+- `npx drx expand`: Decompiles `.drx` files back into standard `.tsx`/`.ts` files.
+- `npx drx ai-context`: Generates an `.drx/ai-context.md` file containing the entire compressed codebase, along with a `.drx/rules.md` file and `.drx/compression-report.md`.
+
+## Workflow for AI Assistants
+
+1. **Understand the Project**: First, run `npx drx compress` and `npx drx ai-context`. Read `.drx/ai-context.md` to get a holistic view of the project's components and logic at a fraction of the token cost.
+2. **Make Modifications**:
+   - **Simple UI/Logic Changes**: You can edit the `.drx` files directly. After editing, run `npx drx check` to validate your syntax. If it passes, run `npx drx expand` to apply changes to the original `.tsx` files.
+   - **Complex Logic/Unsupported Syntax**: If the code is too complex for DRX (e.g., highly nested conditional rendering or raw JavaScript blocks), it's safer to edit the original `.tsx`/`.ts` files directly.
+3. **Verify**: Always run type checks (`tsc --noEmit`) and build commands after expanding `.drx` files to ensure no syntax was lost during translation.
+
+## Rules for Editing .drx Files
+- **Strict Indentation**: `.drx` uses exactly 2 spaces per indentation level. Tabs are forbidden (except inside strings).
+- **Single-Line Statements**: `useEffect`, `useState`, and JSX attributes must be written on a single line. Do not introduce line breaks inside them.
+- **Raw Blocks**: Unsupported syntax is enclosed in `raw` blocks. Do not modify the indentation of the content inside `raw` blocks relative to the `raw` keyword.
+
+## Configuration (drx.config.json)
+```json
+{
+  "include": ["src/**/*.{ts,tsx,js,jsx}", "app/**/*.{ts,tsx,js,jsx}"],
+  "exclude": ["node_modules", ".next", "dist"],
+  "outDir": "src-drx",
+  "sourceDir": "."
+}
+```

@@ -34,7 +34,7 @@ export function compressTsx(source: string, config: DrxConfig, options: Compress
     if (!currentRawGroup.length) return
     const nodes = ts.factory.createNodeArray(currentRawGroup)
     const code = printer.printList(ts.ListFormat.MultiLine, nodes, sourceFile)
-    const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4))
+    const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4)).replace(/\t/g, "  ")
     lines.push("raw", ...indentLines(formatted.split("\n"), 1))
     currentRawGroup = []
   }
@@ -163,7 +163,7 @@ function compressFunctionBody(body: ts.Block, sourceFile: ts.SourceFile) {
     if (!currentRawGroup.length) return
     const nodes = ts.factory.createNodeArray(currentRawGroup)
     const code = printer.printList(ts.ListFormat.MultiLine, nodes, sourceFile)
-    const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4))
+    const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4)).replace(/\t/g, "  ")
     lines.push("raw", ...indentLines(formatted.split("\n"), 1))
     currentRawGroup = []
   }
@@ -214,7 +214,11 @@ function compressUseState(statement: ts.Statement, sourceFile: ts.SourceFile) {
   const firstElement = declaration.name.elements[0]
   if (ts.isOmittedExpression(firstElement)) return null
   const stateName = firstElement.name.getText(sourceFile)
-  const initial = declaration.initializer.arguments[0] ? printer.printNode(ts.EmitHint.Unspecified, declaration.initializer.arguments[0], sourceFile) : "undefined"
+  let initial = "undefined"
+  if (declaration.initializer.arguments[0]) {
+    const code = printer.printNode(ts.EmitHint.Unspecified, declaration.initializer.arguments[0], sourceFile)
+    initial = code.replace(/\s+/g, " ").trim()
+  }
   return `st ${stateName} = ${initial}`
 }
 
@@ -223,7 +227,8 @@ function compressUseEffect(statement: ts.Statement, sourceFile: ts.SourceFile) {
   const expr = statement.expression
   if (!ts.isCallExpression(expr) || expr.expression.getText(sourceFile) !== "useEffect") return null
   const callback = expr.arguments[0]
-  const deps = expr.arguments[1] ? printer.printNode(ts.EmitHint.Unspecified, expr.arguments[1], sourceFile) : "[]"
+  let deps = expr.arguments[1] ? printer.printNode(ts.EmitHint.Unspecified, expr.arguments[1], sourceFile) : "[]"
+  deps = deps.replace(/\s+/g, " ").trim()
   if (!callback || (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback))) return null
   if (!ts.isBlock(callback.body)) return null
 
@@ -239,14 +244,13 @@ function compressSimpleStatement(statement: ts.Statement, sourceFile: ts.SourceF
     const declaration = statement.declarationList.declarations[0]
     const kind = (statement.declarationList.flags & ts.NodeFlags.Let) !== 0 ? "l" : "c"
     if (declaration.initializer) {
-      const initializer = printer.printNode(ts.EmitHint.Unspecified, declaration.initializer, sourceFile)
-      if (initializer.includes("\n")) return null
-      return `${kind} ${declaration.name.getText(sourceFile)} = ${initializer.replace(/\bawait\b/g, "aw")}`
+      const name = printer.printNode(ts.EmitHint.Unspecified, declaration.name, sourceFile).replace(/\s+/g, " ").trim()
+      const initializer = printer.printNode(ts.EmitHint.Unspecified, declaration.initializer, sourceFile).replace(/\s+/g, " ").trim()
+      return `${kind} ${name} = ${initializer.replace(/\bawait\b/g, "aw")}`
     }
   }
   if (ts.isReturnStatement(statement) && statement.expression) {
-    const expression = printer.printNode(ts.EmitHint.Unspecified, statement.expression, sourceFile)
-    if (expression.includes("\n")) return null
+    const expression = printer.printNode(ts.EmitHint.Unspecified, statement.expression, sourceFile).replace(/\s+/g, " ").trim()
     return `r ${expression.replace(/\bawait\b/g, "aw")}`
   }
   return null
@@ -273,13 +277,17 @@ function compressJsxNode(node: ts.Node, sourceFile: ts.SourceFile): string[] {
   }
   if (ts.isJsxExpression(node)) {
     if (!node.expression) return []
-    return [`{${node.expression.getText(sourceFile)}}`]
+    const code = printer.printNode(ts.EmitHint.Unspecified, node.expression, sourceFile)
+    const singleLine = code.replace(/\r?\n\s*/g, " ")
+    return [`{${singleLine}}`]
   }
   if (ts.isJsxText(node)) {
     const text = node.getText(sourceFile).replace(/\s+/g, " ").trim()
     return text ? [`"${text}"`] : []
   }
-  return [`{${node.getText(sourceFile)}}`]
+  const code = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile)
+  const singleLine = code.replace(/\r?\n\s*/g, " ")
+  return [`{${singleLine}}`]
 }
 
 function compressJsxChildren(children: ts.NodeArray<ts.JsxChild>, sourceFile: ts.SourceFile) {
@@ -290,7 +298,9 @@ function compressAttributes(attributes: ts.JsxAttributes, sourceFile: ts.SourceF
   const parts: string[] = []
   for (const prop of attributes.properties) {
     if (!ts.isJsxAttribute(prop)) {
-      parts.push(prop.getText(sourceFile))
+      const code = printer.printNode(ts.EmitHint.Unspecified, prop, sourceFile)
+      const singleLine = code.replace(/\r?\n\s*/g, " ")
+      parts.push(singleLine)
       continue
     }
     const name = prop.name.getText(sourceFile)
@@ -310,7 +320,9 @@ function compressAttributes(attributes: ts.JsxAttributes, sourceFile: ts.SourceF
       continue
     }
     if (ts.isJsxExpression(value) && value.expression) {
-      parts.push(`${propName}=${formatCompressedExpression(value.expression.getText(sourceFile))}`)
+      const code = printer.printNode(ts.EmitHint.Unspecified, value.expression, sourceFile)
+      const singleLine = code.replace(/\r?\n\s*/g, " ")
+      parts.push(`${propName}=${formatCompressedExpression(singleLine)}`)
       continue
     }
     parts.push(`${propName}=${value.getText(sourceFile)}`)
@@ -362,7 +374,7 @@ function isInlineJsxChild(line: string) {
 
 function rawBlock(node: ts.Node, sourceFile: ts.SourceFile, level: number) {
   const code = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile)
-  const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4))
+  const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4)).replace(/\t/g, "  ")
   return ["raw", ...indentLines(formatted.split("\n"), level + 1)]
 }
 

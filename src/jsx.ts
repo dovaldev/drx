@@ -12,23 +12,12 @@ type TagMatch = {
 
 export function transformJsxLite(lines: string[], config: DrxConfig, file?: string) {
   const output: string[] = []
-  const stack: { tag: string; line: number }[] = []
 
   for (const item of lines) {
     const lineNo = Number(item.slice(0, item.indexOf(":")))
     const source = item.slice(item.indexOf(":") + 1)
-    const transformed = transformLine(source, config, file, lineNo, stack)
+    const transformed = transformLine(source, config, file, lineNo)
     output.push(transformed)
-  }
-
-  if (stack.length) {
-    const open = stack.at(-1)!
-    throw new DrxError({
-      code: "DRX_UNCLOSED_TAG",
-      message: `Unclosed JSX tag <${open.tag}>.`,
-      file,
-      line: open.line
-    })
   }
 
   return output.join("\n")
@@ -38,8 +27,7 @@ function transformLine(
   line: string,
   config: DrxConfig,
   file: string | undefined,
-  lineNo: number,
-  stack: { tag: string; line: number }[]
+  lineNo: number
 ) {
   if (/^\s*if\s+/.test(line)) return line.replace(/^(\s*)if\s+(.+)$/, "$1{$2 && (")
   if (/^\s*for\s+/.test(line)) {
@@ -53,7 +41,7 @@ function transformLine(
   let result = ""
   let cursor = 0
   for (const match of matches) {
-    const transformed = transformTag(match, config, file, lineNo, stack)
+    const transformed = transformTag(match, config, file, lineNo)
     const start = line.indexOf(match.full, cursor)
     result += line.slice(cursor, start) + transformed
     cursor = start + match.full.length
@@ -67,44 +55,78 @@ function transformLine(
 function scanTags(line: string): TagMatch[] {
   const matches: TagMatch[] = []
   let i = 0
+  let braceDepth = 0
+  let quote: string | null = null
+
   while (i < line.length) {
-    if (line[i] !== "<" || !/[A-Za-z/]/.test(line[i + 1] ?? "")) {
+    const char = line[i]
+    if (quote) {
+      if (char === quote) quote = null
       i++
       continue
     }
-    const start = i
-    let quote: string | null = null
-    let braceDepth = 0
-    i++
-    while (i < line.length) {
-      const char = line[i]
-      if (quote) {
-        if (char === quote) quote = null
-        i++
-        continue
-      }
-      if (char === '"' || char === "'") {
-        quote = char
-        i++
-        continue
-      }
-      if (char === "{") braceDepth++
-      if (char === "}") braceDepth--
-      if (char === ">" && braceDepth === 0) break
+    if (char === '"' || char === "'") {
+      quote = char
       i++
+      continue
     }
-    if (line[i] !== ">") break
-    const full = line.slice(start, i + 1)
-    const parsed = full.match(/^<\/?\s*([A-Za-z][\w.]*)\b([\s\S]*?)\/?\s*>$/)
-    if (parsed) {
-      matches.push({
-        full,
-        closing: full.startsWith("</"),
-        tag: parsed[1],
-        attrs: parsed[2] ?? "",
-        selfClosing: /\/\s*>$/.test(full)
-      })
+    if (char === "{") {
+      braceDepth++
+      i++
+      continue
     }
+    if (char === "}") {
+      if (braceDepth > 0) braceDepth--
+      i++
+      continue
+    }
+
+    if (braceDepth > 0) {
+      i++
+      continue
+    }
+
+    if (char === "<" && /[A-Za-z/]/.test(line[i + 1] ?? "")) {
+      const start = i
+      let tagQuote: string | null = null
+      let tagBraceDepth = 0
+      i++
+      while (i < line.length) {
+        const tChar = line[i]
+        if (tagQuote) {
+          if (tChar === tagQuote) tagQuote = null
+          i++
+          continue
+        }
+        if (tChar === '"' || tChar === "'") {
+          tagQuote = tChar
+          i++
+          continue
+        }
+        if (tChar === "{") tagBraceDepth++
+        if (tChar === "}") tagBraceDepth--
+        if (tChar === ">" && tagBraceDepth === 0) break
+        i++
+      }
+      if (line[i] !== ">") {
+        // Tag didn't close properly, just break
+        break
+      }
+      const full = line.slice(start, i + 1)
+      const parsed = full.match(/^<\/?\s*([A-Za-z][\w.]*)\b([\s\S]*?)\/?\s*>$/)
+      if (parsed) {
+        matches.push({
+          full,
+          closing: full.startsWith("</"),
+          tag: parsed[1],
+          attrs: parsed[2] ?? "",
+          selfClosing: /\/\s*>$/.test(full)
+        })
+      }
+      i++
+      continue
+    }
+    
     i++
   }
   return matches
@@ -131,24 +153,13 @@ function transformTag(
   match: TagMatch,
   config: DrxConfig,
   file: string | undefined,
-  line: number,
-  stack: { tag: string; line: number }[]
+  line: number
 ) {
   const tag = resolveTag(match.tag, config)
   if (match.closing) {
-    const open = stack.pop()
-    if (!open || open.tag !== tag) {
-      throw new DrxError({
-        code: "DRX_MISMATCHED_TAG",
-        message: `Unexpected closing tag </${tag}>.`,
-        file,
-        line
-      })
-    }
     return `</${tag}>`
   }
 
-  if (!match.selfClosing) stack.push({ tag, line })
   const attrs = transformAttrs(match.attrs.replace(/\/\s*$/, "").trim(), config, file, line)
   const close = match.selfClosing ? " />" : ">"
   return `<${tag}${attrs ? ` ${attrs}` : ""}${close}`

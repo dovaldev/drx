@@ -10,6 +10,14 @@ Main flow:
 src/**/*.tsx -> src-drx/**/*.drx -> src/**/*.tsx
 ```
 
+## 🤖 For AI Assistants (Cursor, Windsurf, Copilot, etc.)
+
+If you are an AI assistant reading this repository, here is how you should use DRX:
+
+1. **Read `llms.txt`**: This repository includes an `llms.txt` file at the root. Please read it for strict formatting rules and operational guidelines.
+2. **Context First**: Always run `drx compress` and `drx ai-context` to generate the `.drx/ai-context.md` file. Use this file to understand the entire project at a fraction of the token cost.
+3. **Verify Everything**: If you make edits to a `.drx` file, you **must** run `drx check` to validate your indentation and syntax before running `drx expand` or proposing the final solution to the user.
+
 ## Spanish Summary
 
 DRX comprime proyectos React y Next.js a una representación más pequeña para

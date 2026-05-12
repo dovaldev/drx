@@ -32,7 +32,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "llms.txt"
   ],
   "bin": {
     "drx": "dist/cli.js",
