@@ -190,7 +190,7 @@ async function findDrxFiles(cwd: string, config: DrxConfig) {
 async function findRuntimeFiles(cwd: string, config: DrxConfig) {
   const outRoot = path.join(cwd, config.outDir)
   if (!(await fs.pathExists(outRoot))) return []
-  return fg("**/*.{tsx,jsx}", { cwd: outRoot, absolute: true, ignore: config.ignore })
+  return fg("**/*.{tsx,jsx,ts,js}", { cwd: outRoot, absolute: true, ignore: config.ignore })
 }
 
 export async function runCommand(action: () => Promise<void>) {

@@ -56,7 +56,7 @@ const Card = ({ title }) => (
 
     expect(drx).toContain(`i React f r`)
     expect(drx).toContain(`i {uE,uS} f r`)
-    expect(drx).toContain(`ex fn Badge({ label }: { label: string })`)
+    expect(drx).toContain(`ex fn Badge({ label }: { label: string; })`)
     expect(drx).toContain(`<sp .rounded .px-2>{label}</sp>`)
     expect(drx).toContain(`fn Card({ title })`)
     expect(drx).toContain(`<s .p-6>`)
@@ -74,8 +74,8 @@ export default function App({ Component, pageProps }: AppProps) {
       defaultConfig
     )
 
-    expect(drx).toContain(`raw\n  import "nextra-theme-blog/style.css"`)
-    expect(drx).toContain(`raw\n  import type { AppProps } from "next/app"`)
+    expect(drx).toContain(`raw\n\n  import "nextra-theme-blog/style.css";`)
+    expect(drx).toContain(`raw\n\n  import type { AppProps } from "next/app";`)
     expect(drx).toContain(`ed fn App({ Component, pageProps }: AppProps)`)
     expect(drx).toContain(`<Component {...pageProps} />`)
   })

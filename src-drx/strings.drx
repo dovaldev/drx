@@ -1,0 +1,59 @@
+ex fn setterName(name: string)
+  r `set${name.charAt(0).toUpperCase()}${name.slice(1)}`
+ex fn replaceAw(value: string)
+  r value.replace(/\baw\b/g, "aw")
+ex fn normalizeParams(params: string)
+  raw
+    return params
+      .replace(/\{\s*/g, "{ ")
+      .replace(/\s*\}/g, " }")
+      .replace(/,\s*/g, ", ")
+      .replace(/:\s*/g, ": ")
+      .replace(/\s+/g, " ")
+      .replace(/\{\s+\}/g, "{}")
+      .trim();
+
+ex fn splitTopLevel(input: string)
+  c tokens = []
+  l current = ""
+  l quote = null
+  l braceDepth = 0
+  l parenDepth = 0
+  l bracketDepth = 0
+  raw
+    for (const char of input) {
+      if (quote) {
+        current += char;
+        if (char === quote)
+          quote = null;
+        continue;
+      }
+      if (char === '"' || char === "'") {
+        quote = char;
+        current += char;
+        continue;
+      }
+      if (char === "{")
+        braceDepth++;
+      if (char === "}")
+        braceDepth--;
+      if (char === "(")
+        parenDepth++;
+      if (char === ")")
+        parenDepth--;
+      if (char === "[")
+        bracketDepth++;
+      if (char === "]")
+        bracketDepth--;
+      if (/\s/.test(char) && braceDepth === 0 && parenDepth === 0 && bracketDepth === 0) {
+        if (current)
+          tokens.push(current);
+        current = "";
+        continue;
+      }
+      current += char;
+    }
+    if (current)
+      tokens.push(current);
+
+  r tokens

@@ -1,0 +1,101 @@
+i fs f "fs-extra"
+
+i path f "node:path"
+
+raw
+
+  export type DrxConfig = {
+    sourceDir: string;
+    outDir: string;
+    framework: "next" | "react";
+    mode: "jsx-lite";
+    generatedHeader: boolean;
+    formatWithPrettier: boolean;
+    autoImportHooks: boolean;
+    keepUnknownAsRaw: boolean;
+    aliases: Record<string, string>;
+    namedAliases: Record<string, string>;
+    tagAliases: Record<string, string>;
+    componentAliases: Record<string, string>;
+    eventAliases: Record<string, string>;
+    ignore: string[];
+  };
+  export const defaultConfig: DrxConfig = {
+    sourceDir: "src-drx",
+    outDir: "src",
+    framework: "next",
+    mode: "jsx-lite",
+    generatedHeader: true,
+    formatWithPrettier: true,
+    autoImportHooks: true,
+    keepUnknownAsRaw: false,
+    aliases: {
+      r: "react",
+      nl: "next/link",
+      ni: "next/image",
+      lc: "lucide-react",
+      fm: "framer-motion",
+      rq: "@tanstack/react-query"
+    },
+    namedAliases: {
+      uS: "useState",
+      uE: "useEffect",
+      uM: "useMemo",
+      uC: "useCallback",
+      uR: "useRef",
+      uCtx: "useContext"
+    },
+    tagAliases: {
+      m: "main",
+      s: "section",
+      d: "div",
+      sp: "span",
+      btn: "button",
+      hdr: "header",
+      ftr: "footer",
+      art: "article",
+      frm: "form",
+      lbl: "label",
+      inp: "input",
+      ta: "textarea",
+      sel: "select",
+      opt: "option"
+    },
+    componentAliases: {},
+    eventAliases: {
+      "@click": "onClick",
+      "@change": "onChange",
+      "@submit": "onSubmit",
+      "@input": "onInput",
+      "@focus": "onFocus",
+      "@blur": "onBlur",
+      "@key": "onKeyDown"
+    },
+    ignore: ["node_modules/**", ".next/**", "dist/**", ".drx/**", "src-drx/**"]
+  };
+
+ex async fn loadConfig(cwd = process.cwd())
+  c configPath = path.join(cwd, "drx.config.json")
+  raw
+    if (!(await fs.pathExists(configPath)))
+      return defaultConfig;
+
+  c userConfig = aw fs.readJson(configPath)
+  raw
+    return {
+      ...defaultConfig,
+      ...userConfig,
+      aliases: { ...defaultConfig.aliases, ...userConfig.aliases },
+      namedAliases: { ...defaultConfig.namedAliases, ...userConfig.namedAliases },
+      tagAliases: { ...defaultConfig.tagAliases, ...userConfig.tagAliases },
+      componentAliases: { ...defaultConfig.componentAliases, ...userConfig.componentAliases },
+      eventAliases: { ...defaultConfig.eventAliases, ...userConfig.eventAliases },
+      ignore: userConfig.ignore ?? defaultConfig.ignore
+    };
+
+ex async fn writeDefaultConfig(cwd = process.cwd())
+  c configPath = path.join(cwd, "drx.config.json")
+  raw
+    await fs.writeJson(configPath, defaultConfig, { spaces: 2 });
+
+  r configPath

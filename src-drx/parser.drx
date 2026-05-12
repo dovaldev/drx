@@ -1,0 +1,230 @@
+i {FunctionBodyNode,Node,Program} f "./ast.js"
+
+i {DrxConfig} f "./config.js"
+
+i {DrxError} f "./errors.js"
+
+i {transformJsxLite} f "./jsx.js"
+
+i {replaceAw,setterName} f "./strings.js"
+
+raw
+
+  type Line = {
+    no: number;
+    indent: number;
+    text: string;
+  };
+
+ex fn parseDrx(source: string, config: DrxConfig, file?: string)
+  c lines = toLines(source, file)
+  c nodes = []
+  l usesState = false
+  l usesEffect = false
+  l index = 0
+  raw
+    while (index < lines.length) {
+      const line = lines[index];
+      if (line.indent !== 0) {
+        throw new DrxError({
+          code: "DRX_INVALID_INDENT",
+          message: "Top-level lines must not be indented.",
+          file,
+          line: line.no
+        });
+      }
+      const parsed = parseTopLevel(lines, index, config, file);
+      index = parsed.next;
+      if (parsed.usesState)
+        usesState = true;
+      if (parsed.usesEffect)
+        usesEffect = true;
+      nodes.push(parsed.node);
+    }
+
+  r { nodes, usesState, usesEffect }
+fn toLines(source: string, file?: string)
+
+  raw
+    return source
+      .replace(/\r\n/g, "\n")
+      .split("\n")
+      .map((raw, i) => {
+      if (raw.includes("\t")) {
+        throw new DrxError({
+          code: "DRX_TAB_INDENT",
+          message: "Tabs are not allowed. Use 2 spaces per indent level.",
+          file,
+          line: i + 1
+        });
+      }
+      const spaces = raw.match(/^ */)?.[0].length ?? 0;
+      if (spaces % 2 !== 0) {
+        throw new DrxError({
+          code: "DRX_INVALID_INDENT",
+          message: "Indentation must use multiples of 2 spaces.",
+          file,
+          line: i + 1
+        });
+      }
+      return { no: i + 1, indent: spaces / 2, text: raw.trim() };
+    })
+      .filter((line) => line.text.length > 0);
+
+fn parseTopLevel(lines: Line[], index: number, config: DrxConfig, file?: string)
+
+  c line = lines[index]
+  raw
+    if (/^"[^"]+"$/.test(line.text)) {
+      return { node: { type: "directive", value: line.text } as Node, next: index + 1 };
+    }
+    if (line.text.startsWith("//")) {
+      return { node: { type: "comment", code: line.text, line: line.no } as Node, next: index + 1 };
+    }
+    if (line.text.startsWith("i ")) {
+      const match = line.text.match(/^i\s+(.+)\s+f\s+(.+)$/);
+      if (!match) {
+        throw new DrxError({
+          code: "DRX_INVALID_IMPORT",
+          message: "Invalid import. Expected: i Name f source or i {A,B} f source.",
+          file,
+          line: line.no
+        });
+      }
+      return {
+        node: { type: "import", imported: match[1].trim(), source: match[2].trim(), line: line.no } as Node,
+        next: index + 1
+      };
+    }
+    if (line.text === "raw") {
+      const block = collectBlock(lines, index, 1);
+      return { node: { type: "raw", code: block.text, line: line.no } as Node, next: block.next };
+    }
+
+  c fn = parseFunctionHeader(line.text)
+  raw
+    if (fn) {
+      const block = collectFunctionBody(lines, index, config, file);
+      return {
+        node: { type: "function", ...fn, body: block.body, line: line.no } as Node,
+        next: block.next,
+        usesState: block.usesState,
+        usesEffect: block.usesEffect
+      };
+    }
+    if (config.keepUnknownAsRaw) {
+      return { node: { type: "raw", code: line.text, line: line.no } as Node, next: index + 1 };
+    }
+    throw new DrxError({
+      code: "DRX_UNKNOWN_LINE",
+      message: `Unknown DRX line: ${line.text}`,
+      file,
+      line: line.no
+    });
+
+fn parseFunctionHeader(text: string)
+
+  c match = text.match(/^(?:(ed|ex)\s+)?(async\s+)?fn\s+([A-Za-z_$][\w$]*)\((.*)\)$/)
+  raw
+    if (!match)
+      return null;
+    return {
+      exportDefault: match[1] === "ed",
+      exportNamed: match[1] === "ex",
+      async: Boolean(match[2]),
+      name: match[3],
+      params: match[4]
+    };
+
+fn collectFunctionBody(lines: Line[], start: number, config: DrxConfig, file?: string)
+
+  c body = []
+  l usesState = false
+  l usesEffect = false
+  l index = start + 1
+  raw
+    while (index < lines.length && lines[index].indent > lines[start].indent) {
+      const line = lines[index];
+      if (line.indent !== 1) {
+        throw new DrxError({
+          code: "DRX_INVALID_INDENT",
+          message: "Function body lines must be indented one level.",
+          file,
+          line: line.no
+        });
+      }
+      if (line.text.startsWith("//")) {
+        body.push({ type: "comment", code: line.text, line: line.no });
+        index++;
+        continue;
+      }
+      if (line.text === "ui") {
+        const block = collectBlock(lines, index, 2);
+        if (!block.text.trim()) {
+          throw new DrxError({ code: "DRX_EMPTY_UI", message: "ui block cannot be empty.", file, line: line.no });
+        }
+        body.push({ type: "ui", jsx: transformJsxLite(block.numberedLines, config, file), line: line.no });
+        index = block.next;
+        continue;
+      }
+      if (line.text === "raw") {
+        const block = collectBlock(lines, index, 2);
+        body.push({ type: "raw", code: block.text, line: line.no });
+        index = block.next;
+        continue;
+      }
+      if (line.text.startsWith("st ")) {
+        const match = line.text.match(/^st\s+([A-Za-z_$][\w$]*)\s*=\s*(.+)$/);
+        if (!match)
+          throw new DrxError({ code: "DRX_INVALID_STATE", message: "Invalid state. Expected: st name = initialValue.", file, line: line.no });
+        usesState = true;
+        body.push({
+          type: "statement",
+          code: `const [${match[1]}, ${setterName(match[1])}] = useState(${replaceAw(match[2])})`,
+          line: line.no
+        });
+        index++;
+        continue;
+      }
+      if (line.text.startsWith("ef ")) {
+        const match = line.text.match(/^ef\s+(\[.*\])$/);
+        if (!match)
+          throw new DrxError({ code: "DRX_INVALID_EFFECT", message: "Invalid effect. Expected: ef [deps].", file, line: line.no });
+        const block = collectBlock(lines, index, 2);
+        usesEffect = true;
+        body.push({ type: "effect", deps: match[1], code: block.text, line: line.no });
+        index = block.next;
+        continue;
+      }
+      body.push({ type: "statement", code: transformStatement(line.text), line: line.no });
+      index++;
+    }
+
+  r { body, next: index, usesState, usesEffect }
+fn transformStatement(text: string)
+
+  raw
+    if (text.startsWith("c "))
+      return text.replace(/^c\s+(.+?)\s*=\s*(.+)$/, (_, left, value) => `const ${left} = ${replaceAw(value)}`);
+    if (text.startsWith("l "))
+      return text.replace(/^l\s+(.+?)\s*=\s*(.+)$/, (_, left, value) => `let ${left} = ${replaceAw(value)}`);
+    if (text.startsWith("r "))
+      return `return ${replaceAw(text.slice(2).trim())}`;
+
+  r replaceAw(text)
+fn collectBlock(lines: Line[], start: number, childIndent: number)
+
+  c body = []
+  c numberedLines = []
+  l index = start + 1
+  raw
+    while (index < lines.length && lines[index].indent >= childIndent) {
+      const line = lines[index];
+      const trimLevels = Math.min(line.indent, childIndent);
+      const prefix = "  ".repeat(line.indent - trimLevels);
+      body.push(`${prefix}${line.text}`);
+      numberedLines.push(`${line.no}:${prefix}${line.text}`);
+      index++;
+    }
+
+  r { text: body.join("\n"), numberedLines, next: index }

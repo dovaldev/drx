@@ -1,0 +1,231 @@
+i chokidar f "chokidar"
+
+i fg f "fast-glob"
+
+i fs f "fs-extra"
+
+i path f "node:path"
+
+i {generateAiContext} f "./aiContext.js"
+
+i {compileDrx} f "./compiler.js"
+
+i {compressTsx} f "./compress.js"
+
+i {DrxConfig,loadConfig,writeDefaultConfig} f "./config.js"
+
+i {formatError} f "./errors.js"
+
+i {parseDrx} f "./parser.js"
+
+ex async fn initCommand(cwd = process.cwd())
+  c configPath = aw writeDefaultConfig(cwd)
+  raw
+    await fs.ensureDir(path.join(cwd, "src-drx"));
+    console.log(`Created ${path.relative(cwd, configPath)}`);
+
+ex async fn checkCommand(cwd = process.cwd())
+  c config = aw loadConfig(cwd)
+  c files = aw findDrxFiles(cwd, config)
+  raw
+    for (const file of files) {
+      const source = await fs.readFile(file, "utf8");
+      parseDrx(source, config, path.relative(cwd, file));
+    }
+    console.log(`DRX check passed (${files.length} files)`);
+
+ex async fn expandCommand(cwd = process.cwd())
+  c config = aw loadConfig(cwd)
+  c files = aw findDrxFiles(cwd, config)
+  raw
+    for (const file of files) {
+      await expandFile(cwd, config, file);
+    }
+    console.log(`DRX expanded ${files.length} files`);
+
+ex async fn compressCommand(cwd = process.cwd())
+  c config = aw loadConfig(cwd)
+  c files = aw findRuntimeFiles(cwd, config)
+  c stats = []
+  raw
+    for (const file of files) {
+      stats.push(await compressFile(cwd, config, file));
+    }
+
+  c reportPath = aw writeCompressionReport(cwd, config, stats)
+  raw
+    console.log(`DRX compressed ${files.length} files`);
+    console.log(`Compression report: ${path.relative(cwd, reportPath)}`);
+
+ex async fn aiContextCommand(cwd = process.cwd())
+  c config = aw loadConfig(cwd)
+  c summary = aw generateAiContext(cwd, config)
+  raw
+    console.log(`Generated .drx/ai-context.md (${summary.drxFiles.length} DRX files, ${summary.tsxFiles.length} runtime files)`);
+
+ex async fn watchCommand(cwd = process.cwd())
+  c config = aw loadConfig(cwd)
+  c sourceRoot = path.join(cwd, config.sourceDir)
+  c watcher = chokidar.watch("**/*.drx", { cwd: sourceRoot, ignoreInitial: false })
+  raw
+    watcher.on("add", (relative) => expandFile(cwd, config, path.join(sourceRoot, relative)).catch(logError));
+    watcher.on("change", (relative) => expandFile(cwd, config, path.join(sourceRoot, relative)).catch(logError));
+    console.log(`Watching ${config.sourceDir}`);
+
+async fn expandFile(cwd: string, config: DrxConfig, file: string)
+
+  c sourceRoot = path.join(cwd, config.sourceDir)
+  c outRoot = path.join(cwd, config.outDir)
+  c relative = path.relative(sourceRoot, file)
+  c outFile = path.join(outRoot, relative.replace(/\.drx$/, ".tsx"))
+  c source = aw fs.readFile(file, "utf8")
+  raw
+    const tsx = await compileDrx(source, config, {
+      file: path.relative(cwd, file),
+      sourcePath: path.relative(cwd, file)
+    });
+    await fs.ensureDir(path.dirname(outFile));
+    await fs.writeFile(outFile, tsx);
+    console.log(`${path.relative(cwd, file)} -> ${path.relative(cwd, outFile)}`);
+
+raw
+
+  type CompressionFileStats = {
+    runtimeFile: string;
+    drxFile: string;
+    sourceChars: number;
+    drxChars: number;
+    sourceTokens: number;
+    drxTokens: number;
+    savedTokens: number;
+    rawBlocks: number;
+  };
+
+async fn compressFile(cwd: string, config: DrxConfig, file: string)
+
+  c sourceRoot = path.join(cwd, config.outDir)
+  c drxRoot = path.join(cwd, config.sourceDir)
+  c relative = path.relative(sourceRoot, file)
+  c outFile = path.join(drxRoot, relative.replace(/\.(tsx|ts|jsx|js)$/, ".drx"))
+  c source = aw fs.readFile(file, "utf8")
+  c drx = compressTsx(source, config, { file: path.relative(cwd, file) })
+  raw
+    await fs.ensureDir(path.dirname(outFile));
+    await fs.writeFile(outFile, drx);
+    console.log(`${path.relative(cwd, file)} -> ${path.relative(cwd, outFile)}`);
+
+  c sourceTokens = estimateTokens(source)
+  c drxTokens = estimateTokens(drx)
+  raw
+    return {
+      runtimeFile: path.relative(cwd, file),
+      drxFile: path.relative(cwd, outFile),
+      sourceChars: source.length,
+      drxChars: drx.length,
+      sourceTokens,
+      drxTokens,
+      savedTokens: sourceTokens - drxTokens,
+      rawBlocks: countRawBlocks(drx)
+    };
+
+async fn writeCompressionReport(cwd: string, config: DrxConfig, files: CompressionFileStats[])
+
+  c metaDir = path.join(cwd, ".drx")
+  c reportPath = path.join(metaDir, "compression-report.md")
+  raw
+    await fs.ensureDir(metaDir);
+    await fs.writeFile(reportPath, compressionReportMarkdown(config, files));
+
+  r reportPath
+fn compressionReportMarkdown(config: DrxConfig, files: CompressionFileStats[])
+
+  raw
+    const totals = files.reduce((acc, file) => ({
+      sourceChars: acc.sourceChars + file.sourceChars,
+      drxChars: acc.drxChars + file.drxChars,
+      sourceTokens: acc.sourceTokens + file.sourceTokens,
+      drxTokens: acc.drxTokens + file.drxTokens,
+      savedTokens: acc.savedTokens + file.savedTokens,
+      rawBlocks: acc.rawBlocks + file.rawBlocks
+    }), { sourceChars: 0, drxChars: 0, sourceTokens: 0, drxTokens: 0, savedTokens: 0, rawBlocks: 0 });
+
+  c tokenReduction = percent(totals.savedTokens, totals.sourceTokens)
+  c charReduction = percent(totals.sourceChars - totals.drxChars, totals.sourceChars)
+  raw
+    return `# DRX Compression Report
+
+    Generated: ${new Date().toISOString()}
+
+    ## Summary
+
+    - Runtime source: \`${config.outDir}\`
+    - DRX source: \`${config.sourceDir}\`
+    - Files compressed: ${files.length}
+    - Estimated original context: ${formatNumber(totals.sourceTokens)} tokens
+    - Estimated DRX context: ${formatNumber(totals.drxTokens)} tokens
+    - Estimated tokens saved: ${formatNumber(totals.savedTokens)} (${tokenReduction})
+    - Character reduction: ${formatNumber(totals.sourceChars)} -> ${formatNumber(totals.drxChars)} (${charReduction})
+    - Raw fallback blocks: ${formatNumber(totals.rawBlocks)}
+
+    Token estimates use a simple \`characters / 4\` heuristic. Actual savings vary by model tokenizer.
+
+    ## Files
+
+    | Runtime | DRX | Original tokens | DRX tokens | Saved | Reduction | Raw blocks |
+    | --- | --- | ---: | ---: | ---: | ---: | ---: |
+    ${files.map(fileReportRow).join("\n") || "| None | None | 0 | 0 | 0 | 0% | 0 |"}
+    `;
+
+fn fileReportRow(file: CompressionFileStats)
+
+  r `| \`${file.runtimeFile}\` | \`${file.drxFile}\` | ${formatNumber(file.sourceTokens)} | ${formatNumber(file.drxTokens)} | ${formatNumber(file.savedTokens)} | ${percent(file.savedTokens, file.sourceTokens)} | ${file.rawBlocks} |`
+fn estimateTokens(source: string)
+
+  raw
+    if (!source)
+      return 0;
+
+  r Math.ceil(source.length / 4)
+fn countRawBlocks(drx: string)
+
+  r drx.split(/\r?\n/).filter((line) => line === "raw").length
+fn percent(part: number, total: number)
+
+  raw
+    if (!total)
+      return "0%";
+
+  r `${((part / total) * 100).toFixed(1)}%`
+fn formatNumber(value: number)
+
+  r new Intl.NumberFormat("en-US").format(value)
+async fn findDrxFiles(cwd: string, config: DrxConfig)
+
+  c sourceRoot = path.join(cwd, config.sourceDir)
+  raw
+    if (!(await fs.pathExists(sourceRoot)))
+      return [];
+
+  r fg("**/*.drx", { cwd: sourceRoot, absolute: true })
+async fn findRuntimeFiles(cwd: string, config: DrxConfig)
+
+  c outRoot = path.join(cwd, config.outDir)
+  raw
+    if (!(await fs.pathExists(outRoot)))
+      return [];
+
+  r fg("**/*.{tsx,jsx,ts,js}", { cwd: outRoot, absolute: true, ignore: config.ignore })
+ex async fn runCommand(action: () => Promise<void>)
+  raw
+    try {
+      await action();
+    }
+    catch (error) {
+      logError(error);
+      process.exitCode = 1;
+    }
+
+fn logError(error: unknown)
+
+  raw
+    console.error(formatError(error));
