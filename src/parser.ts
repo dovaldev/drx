@@ -74,18 +74,37 @@ function parseTopLevel(lines: Line[], index: number, config: DrxConfig, file?: s
     return { node: { type: "comment", code: line.text, line: line.no } as Node, next: index + 1 }
   }
   if (line.text.startsWith("i ")) {
-    const match = line.text.match(/^i\s+(.+)\s+f\s+(.+)$/)
+    let importText = line.text
+    let importIndex = index
+    
+    // Check if it's a multi-line import (unclosed brace)
+    if (/^i\s+\{/.test(importText) && !importText.includes("}")) {
+      while (importIndex + 1 < lines.length) {
+        importIndex++
+        importText += " " + lines[importIndex].text
+        if (lines[importIndex].text.includes("}")) {
+          break
+        }
+      }
+      // Continue grabbing until 'f' source is found if it was pushed to next line
+      while (importIndex + 1 < lines.length && !/\s+f\s+/.test(importText)) {
+        importIndex++
+        importText += " " + lines[importIndex].text
+      }
+    }
+
+    const match = importText.match(/^i\s+(.+)\s+f\s+(.+)$/)
     if (!match) {
       throw new DrxError({
         code: "DRX_INVALID_IMPORT",
-        message: "Invalid import. Expected: i Name f source or i {A,B} f source.",
+        message: `Invalid import. Expected: i Name f source or i {A,B} f source.\nGot: ${importText}`,
         file,
         line: line.no
       })
     }
     return {
       node: { type: "import", imported: match[1].trim(), source: match[2].trim(), line: line.no } as Node,
-      next: index + 1
+      next: importIndex + 1
     }
   }
   if (line.text === "raw" || line.text === "raw ```") {

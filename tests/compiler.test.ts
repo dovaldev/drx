@@ -157,6 +157,28 @@ ed fn Page()
     expect(output).toContain(`useEffect(() => {\n    console.log("Effect")\n  }, [dep1, dep2])`)
   })
 
+  it("compiles multi-line imports", async () => {
+    const output = await compileDrx(
+      `i {
+  Search,
+  FileText
+} f lc
+i {
+  Link
+}
+f nl
+
+ed fn Page()
+  ui
+    <div />
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`import { FileText, Search } from "lucide-react"`)
+    expect(output).toContain(`import { Link } from "next/link"`)
+  })
+
   it("compiles function overloads without body", async () => {
     const output = await compileDrx(
       `ex fn QueryCell(opts: OptsA)
