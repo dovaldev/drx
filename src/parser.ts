@@ -94,9 +94,21 @@ function parseTopLevel(lines: Line[], index: number, config: DrxConfig, file?: s
     return { node: { type: "raw", code: block.text, line: line.no } as Node, next: block.next }
   }
 
-  const fn = parseFunctionHeader(line.text)
+  let fnText = line.text
+  let fnIndex = index
+  if (/^(?:(?:ed|ex)\s+)?(?:async\s+)?fn\s+[A-Za-z_$][\w$]*\(/.test(fnText) && !fnText.endsWith(")")) {
+    while (fnIndex + 1 < lines.length) {
+      fnIndex++
+      fnText += " " + lines[fnIndex].text
+      if (lines[fnIndex].text.endsWith(")")) {
+        break
+      }
+    }
+  }
+
+  const fn = parseFunctionHeader(fnText)
   if (fn) {
-    const block = collectFunctionBody(lines, index, config, file)
+    const block = collectFunctionBody(lines, fnIndex, config, file)
     return {
       node: { type: "function", ...fn, body: block.body, line: line.no } as Node,
       next: block.next,

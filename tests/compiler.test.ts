@@ -70,4 +70,36 @@ ed fn Page()
     expect(output).toContain(`export function Button({ children })`)
     expect(output).toContain(`<button className="px-4">{children}</button>`)
   })
+
+  it("compiles multi-line function header", async () => {
+    const output = await compileDrx(
+      `ex fn CustomI18nProvider({
+  locale,
+  messages,
+  children
+})
+  ui
+    <div>{children}</div>
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`export function CustomI18nProvider({ locale, messages, children })`)
+    expect(output).toContain(`<div>{children}</div>`)
+  })
+
+  it("compiles function header with parenthesis on new lines", async () => {
+    const output = await compileDrx(
+      `ex fn Button(
+  props
+)
+  ui
+    <button />
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`export function Button(props)`)
+    expect(output).toContain(`<button />`)
+  })
 })
