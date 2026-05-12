@@ -1,0 +1,54 @@
+{
+  "name": "dovreact",
+  "version": "0.1.0",
+  "description": "DRX compiler for React and Next.js projects",
+  "type": "module",
+  "license": "MIT",
+  "author": "Liliana Cristina Silva Carvalho",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "react",
+    "nextjs",
+    "tsx",
+    "compiler",
+    "ai",
+    "drx",
+    "dovreact"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "docs"
+  ],
+  "bin": {
+    "drx": "dist/cli.js",
+    "dovreact": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --dts --clean --external typescript",
+    "prepublishOnly": "pnpm check && pnpm test && pnpm build",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chokidar": "latest",
+    "commander": "latest",
+    "fast-glob": "latest",
+    "fs-extra": "latest",
+    "prettier": "latest",
+    "typescript": "latest"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "latest",
+    "@types/node": "latest",
+    "tsup": "latest",
+    "tsx": "latest",
+    "vitest": "latest"
+  }
+}

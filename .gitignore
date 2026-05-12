@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.drx/
+
+.DS_Store
+*.log
+*.tgz
+
+.next/
+coverage/

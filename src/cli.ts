@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+import { Command } from "commander"
+import { aiContextCommand, checkCommand, compressCommand, expandCommand, initCommand, runCommand, watchCommand } from "./commands.js"
+
+const program = new Command()
+
+program.name("drx").description("DRX / DovReact compiler").version("0.1.0")
+program.command("init").description("Create drx.config.json").action(() => runCommand(() => initCommand()))
+program.command("check").description("Validate .drx files").action(() => runCommand(() => checkCommand()))
+program.command("expand").description("Compile .drx files to .tsx").action(() => runCommand(() => expandCommand()))
+program.command("compress").description("Compile .tsx/.jsx files to .drx").action(() => runCommand(() => compressCommand()))
+program.command("ai-context").description("Generate compact project context for AI").action(() => runCommand(() => aiContextCommand()))
+program.command("watch").description("Watch .drx files and compile on change").action(() => runCommand(() => watchCommand()))
+
+program.parse()

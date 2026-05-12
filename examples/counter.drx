@@ -1,0 +1,15 @@
+"use client"
+
+ed fn Counter()
+  st count = 0
+
+  ui
+    <m .min-h-screen .grid .place-items-center .bg-zinc-950 .text-white>
+      <s .rounded-2xl .bg-white/10 .p-8>
+        <h1 .text-3xl .font-bold>"Contador"</h1>
+        <p .mt-3>"Valor actual: " {count}</p>
+        <btn .mt-5 .rounded-xl .bg-blue-500 .px-4 .py-2 @click={() => setCount(count + 1)}>
+          "Sumar"
+        </btn>
+      </s>
+    </m>

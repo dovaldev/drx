@@ -1,0 +1,52 @@
+{
+  "sourceDir": "src-drx",
+  "outDir": "src",
+  "framework": "next",
+  "mode": "jsx-lite",
+  "generatedHeader": true,
+  "formatWithPrettier": true,
+  "autoImportHooks": true,
+  "keepUnknownAsRaw": false,
+  "aliases": {
+    "r": "react",
+    "nl": "next/link",
+    "ni": "next/image",
+    "lc": "lucide-react",
+    "fm": "framer-motion",
+    "rq": "@tanstack/react-query"
+  },
+  "namedAliases": {
+    "uS": "useState",
+    "uE": "useEffect",
+    "uM": "useMemo",
+    "uC": "useCallback",
+    "uR": "useRef",
+    "uCtx": "useContext"
+  },
+  "tagAliases": {
+    "m": "main",
+    "s": "section",
+    "d": "div",
+    "sp": "span",
+    "btn": "button",
+    "hdr": "header",
+    "ftr": "footer",
+    "art": "article",
+    "frm": "form",
+    "lbl": "label",
+    "inp": "input",
+    "ta": "textarea",
+    "sel": "select",
+    "opt": "option"
+  },
+  "componentAliases": {},
+  "eventAliases": {
+    "@click": "onClick",
+    "@change": "onChange",
+    "@submit": "onSubmit",
+    "@input": "onInput",
+    "@focus": "onFocus",
+    "@blur": "onBlur",
+    "@key": "onKeyDown"
+  }
+}
