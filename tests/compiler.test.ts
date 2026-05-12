@@ -186,4 +186,18 @@ ex fn QueryCell(opts: OptsB)
 
     expect(output).toContain(`const a = {\n    b: 1,\n  }`)
   })
+
+  it("handles regex literals without confusing bracket depths", async () => {
+    const output = await compileDrx(
+      `ed fn RegexTest()
+  c regex = /^["']|["']$/g
+  c nextLine = 42
+  ui
+    <div />
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`const regex = /^["']|["']$/g\n\n  const nextLine = 42`)
+  })
 })

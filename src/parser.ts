@@ -257,17 +257,16 @@ function collectStatement(lines: Line[], start: number) {
   let bracketDepth = 0
   
   function updateDepths(text: string) {
-    let quote: string | null = null
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i]
-      if (quote) {
-        if (char === quote && text[i-1] !== '\\') quote = null
-        continue
-      }
-      if (char === '"' || char === "'" || char === "\`") {
-        quote = char
-        continue
-      }
+    // Strip strings and regexes to safely count brackets
+    const cleanText = text
+      .replace(/\\./g, "") // remove escaped chars
+      .replace(/"[^"]*"/g, "") // remove double quote strings
+      .replace(/'[^']*'/g, "") // remove single quote strings
+      .replace(/`[^`]*`/g, "") // remove template strings (single line)
+      .replace(/\/[^/]+\/[gimuy]*/g, "") // remove regex literals
+
+    for (let i = 0; i < cleanText.length; i++) {
+      const char = cleanText[i]
       if (char === "{") braceDepth++
       if (char === "}") braceDepth--
       if (char === "(") parenDepth++
