@@ -75,7 +75,7 @@ export default function App({ Component, pageProps }: AppProps) {
     )
 
     expect(drx).toContain(`raw\n\n  import "nextra-theme-blog/style.css";`)
-    expect(drx).toContain(`raw\n\n  import type { AppProps } from "next/app";`)
+    expect(drx).toContain(`raw\n\n  import "nextra-theme-blog/style.css";\n  import type { AppProps } from "next/app";`)
     expect(drx).toContain(`ed fn App({ Component, pageProps }: AppProps)`)
     expect(drx).toContain(`<Component {...pageProps} />`)
   })
