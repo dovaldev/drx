@@ -102,4 +102,20 @@ ed fn Page()
     expect(output).toContain(`export function Button(props)`)
     expect(output).toContain(`<button />`)
   })
+
+  it("auto-cleanses odd indentation (QoL buff)", async () => {
+    const output = await compileDrx(
+      `ed fn AutoCleanse()
+   ui
+      <div .test>
+         "Texto"
+      </div>
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`export default function AutoCleanse()`)
+    expect(output).toContain(`<div className="test">`)
+    expect(output).toContain(`Texto`)
+  })
 })

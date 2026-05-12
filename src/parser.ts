@@ -46,21 +46,19 @@ function toLines(source: string, file?: string): Line[] {
       if (/^\s*\t/.test(raw)) {
         throw new DrxError({
           code: "DRX_TAB_INDENT",
-          message: "Tabs are not allowed for indentation. Use 2 spaces per indent level.",
+          message: "Tabs are not allowed for indentation. Use spaces instead.",
           file,
           line: i + 1
         })
       }
       const spaces = raw.match(/^ */)?.[0].length ?? 0
-      if (spaces % 2 !== 0) {
-        throw new DrxError({
-          code: "DRX_INVALID_INDENT",
-          message: "Indentation must use multiples of 2 spaces.",
-          file,
-          line: i + 1
-        })
-      }
-      return { no: i + 1, indent: spaces / 2, text: raw.trim() }
+      
+      // Buff de QoL: Auto-limpieza de la hitbox.
+      // En lugar de tirar un insta-ban por espacios impares, redondeamos hacia abajo.
+      // 3 espacios = 1 indent, 5 espacios = 2 indents.
+      const indent = Math.floor(spaces / 2)
+      
+      return { no: i + 1, indent, text: raw.trim() }
     })
     .filter((line) => line.text.length > 0)
 }
