@@ -1,67 +1,103 @@
 # DRX / DovReact
 
-DRX is a compact syntax for writing React and Next.js with less repeated
-boilerplate. It is designed to give AI coding tools a smaller, readable project
-representation that can be expanded back into standard TSX.
+DRX is a compact representation layer for React and Next.js projects. It helps
+AI coding tools read a smaller version of an existing project, understand its
+structure, and then work either in DRX or in the original source code.
 
 Main flow:
 
 ```txt
-src-drx/**/*.drx -> src/**/*.tsx
+src/**/*.tsx -> src-drx/**/*.drx -> src/**/*.tsx
 ```
 
 ## Spanish Summary
 
-DRX es una sintaxis comprimida para React y Next.js. La idea es que una IA pueda
-leer y editar archivos más pequeños en `src-drx/`, y luego generar TSX estándar
-en `src/`.
+DRX comprime proyectos React y Next.js a una representación más pequeña para
+que una IA pueda entender mejor la estructura del proyecto. Después la IA puede
+trabajar en DRX, en TSX original, o usar DRX solo como referencia compacta.
 
 ## Install
 
-This package is currently private. Use it from this repository or publish it to
-a private npm scope before installing it from npm.
-
-From a private npm package:
-
 ```bash
-pnpm add -D @your-scope/drx
+pnpm add -D @dovaldev/drx
 ```
 
-Then run the CLI:
+Run the CLI:
+
+```bash
+pnpm drx --help
+```
+
+## Existing Project Workflow
+
+Use this when you already have a React or Next.js project and want to create a
+compact AI-readable copy.
+
+1. Work on a copy or a branch of the project.
+2. Install DRX:
+
+```bash
+pnpm add -D @dovaldev/drx
+```
+
+3. Initialize config if needed:
 
 ```bash
 pnpm drx init
-pnpm drx check
-pnpm drx expand
+```
+
+4. Compress runtime React/Next files into DRX:
+
+```bash
 pnpm drx compress
+```
+
+5. Generate AI context:
+
+```bash
 pnpm drx ai-context
 ```
 
-## Development
+This creates:
 
-From this repository:
-
-```bash
-pnpm install
-pnpm dev -- init
-pnpm dev -- check
-pnpm dev -- expand
-pnpm dev -- compress
-pnpm dev -- ai-context
-pnpm dev -- watch
+```txt
+src-drx/
+.drx/rules.md
+.drx/ai-context.md
+.drx/compression-report.md
 ```
 
-Build the CLI:
+Then tell the AI:
 
-```bash
-pnpm build
+```txt
+Read .drx/rules.md and .drx/ai-context.md first.
+Use src-drx as the compact project representation.
+If the change is easier in DRX, edit src-drx and run drx check + drx expand.
+If the change is safer in the original code, edit the original TSX/JS/TS files.
+Use raw blocks for unsupported syntax.
 ```
 
-Validate the compiler:
+## Editing Modes
+
+DRX does not force one workflow.
+
+- Use DRX as source of truth for compact UI editing.
+- Use original TSX/JS as source of truth for complex logic or unsupported syntax.
+- Use DRX as a reference project to teach the AI patterns from one project and
+  apply them in another project.
+
+When editing DRX:
 
 ```bash
-pnpm check
-pnpm test
+pnpm drx check
+pnpm drx expand
+```
+
+When editing the original source directly:
+
+```bash
+pnpm drx compress
+pnpm drx ai-context
 ```
 
 ## Minimal Example
@@ -105,6 +141,17 @@ export default function Counter() {
 }
 ```
 
+## Commands
+
+```bash
+pnpm drx init
+pnpm drx check
+pnpm drx expand
+pnpm drx compress
+pnpm drx ai-context
+pnpm drx watch
+```
+
 ## Current Support
 
 - String directives such as `"use client"`.
@@ -121,33 +168,6 @@ export default function Counter() {
 - Compact AI context generation in `.drx/ai-context.md` with `drx ai-context`.
 - Compression metrics in `.drx/compression-report.md`.
 
-## AI Workflow
-
-For an existing React or Next.js project:
-
-```bash
-pnpm drx compress
-pnpm drx ai-context
-```
-
-Then ask the AI to read:
-
-```txt
-.drx/rules.md
-.drx/ai-context.md
-src-drx/**/*.drx
-```
-
-When the AI edits UI in DRX:
-
-```bash
-pnpm drx check
-pnpm drx expand
-```
-
-Rule of thumb: DRX should compress repeated structure, not destroy meaning.
-Readable names still matter.
-
 ## Compression Report
 
 `drx compress` writes:
@@ -163,18 +183,26 @@ block count.
 Token estimates use a simple `characters / 4` heuristic because exact token
 counts depend on the model tokenizer.
 
-## Recommended Reading
+## Development
 
-1. Read `docs/architecture.md`.
-2. Read `docs/ai-workflow.md`.
-3. Read `docs/compression.md`.
-4. Read `docs/usage.md`.
-5. Read `docs/example-blog.md`.
-6. Read `src/parser.ts`: converts DRX lines into internal nodes.
-7. Read `src/jsx.ts`: transforms JSX-lite into normal JSX.
-8. Read `src/compiler.ts`: generates imports, functions, and final TSX.
-9. Add a case in `tests/compiler.test.ts` or `tests/compress.test.ts`.
-10. Run `pnpm test`.
+From this repository:
+
+```bash
+pnpm install
+pnpm dev -- check
+pnpm dev -- expand
+pnpm dev -- compress
+pnpm dev -- ai-context
+pnpm dev -- watch
+```
+
+Build and test:
+
+```bash
+pnpm check
+pnpm test
+pnpm build
+```
 
 ## License
 
