@@ -8,6 +8,7 @@ type Line = {
   no: number
   indent: number
   text: string
+  rawText: string
 }
 
 export function parseDrx(source: string, config: DrxConfig, file?: string): Program {
@@ -58,7 +59,7 @@ function toLines(source: string, file?: string): Line[] {
       // 3 espacios = 1 indent, 5 espacios = 2 indents.
       const indent = Math.floor(spaces / 2)
       
-      return { no: i + 1, indent, text: raw.trim() }
+      return { no: i + 1, indent, text: raw.trim(), rawText: raw }
     })
     .filter((line) => line.text.length > 0)
 }
@@ -87,7 +88,11 @@ function parseTopLevel(lines: Line[], index: number, config: DrxConfig, file?: s
       next: index + 1
     }
   }
-  if (line.text === "raw") {
+  if (line.text === "raw" || line.text === "raw ```") {
+    if (line.text === "raw ```") {
+      const block = collectRawBackticks(lines, index)
+      return { node: { type: "raw", code: block.text, line: line.no } as Node, next: block.next }
+    }
     const block = collectBlock(lines, index, 1)
     return { node: { type: "raw", code: block.text, line: line.no } as Node, next: block.next }
   }
@@ -144,17 +149,10 @@ function collectFunctionBody(lines: Line[], start: number, config: DrxConfig, fi
   let usesState = false
   let usesEffect = false
   let index = start + 1
+  const baseIndent = lines[start].indent + 1
 
-  while (index < lines.length && lines[index].indent > lines[start].indent) {
+  while (index < lines.length && lines[index].indent >= baseIndent) {
     const line = lines[index]
-    if (line.indent !== 1) {
-      throw new DrxError({
-        code: "DRX_INVALID_INDENT",
-        message: "Function body lines must be indented one level.",
-        file,
-        line: line.no
-      })
-    }
 
     if (line.text.startsWith("//")) {
       body.push({ type: "comment", code: line.text, line: line.no })
@@ -162,7 +160,7 @@ function collectFunctionBody(lines: Line[], start: number, config: DrxConfig, fi
       continue
     }
     if (line.text === "ui") {
-      const block = collectBlock(lines, index, 2)
+      const block = collectBlock(lines, index, baseIndent + 1)
       if (!block.text.trim()) {
         throw new DrxError({ code: "DRX_EMPTY_UI", message: "ui block cannot be empty.", file, line: line.no })
       }
@@ -170,14 +168,47 @@ function collectFunctionBody(lines: Line[], start: number, config: DrxConfig, fi
       index = block.next
       continue
     }
-    if (line.text === "raw") {
-      const block = collectBlock(lines, index, 2)
+    if (line.text === "raw" || line.text === "raw ```") {
+      if (line.text === "raw ```") {
+        const block = collectRawBackticks(lines, index)
+        body.push({ type: "raw", code: block.text, line: line.no })
+        index = block.next
+        continue
+      }
+      const block = collectBlock(lines, index, baseIndent + 1)
       body.push({ type: "raw", code: block.text, line: line.no })
       index = block.next
       continue
     }
-    if (line.text.startsWith("st ")) {
-      const match = line.text.match(/^st\s+([A-Za-z_$][\w$]*)\s*=\s*(.+)$/)
+    
+    if (line.text.startsWith("ef ")) {
+      let efText = line.text
+      let efIndex = index
+      if (/^ef\s+\[/.test(efText) && !efText.endsWith("]")) {
+        while (efIndex + 1 < lines.length) {
+          efIndex++
+          efText += "\n" + "  ".repeat(Math.max(0, lines[efIndex].indent - line.indent)) + lines[efIndex].text
+          if (lines[efIndex].text.endsWith("]")) {
+            break
+          }
+        }
+      }
+      const match = efText.match(/^ef\s+(\[[\s\S]*\])$/)
+      if (!match) throw new DrxError({ code: "DRX_INVALID_EFFECT", message: "Invalid effect. Expected: ef [deps].", file, line: line.no })
+      
+      const block = collectBlock(lines, efIndex, baseIndent + 1)
+      usesEffect = true
+      body.push({ type: "effect", deps: match[1], code: block.text, line: line.no })
+      index = block.next
+      continue
+    }
+
+    const stmt = collectStatement(lines, index)
+    const stmtText = stmt.text
+    index = stmt.next
+
+    if (stmtText.startsWith("st ")) {
+      const match = stmtText.match(/^st\s+([A-Za-z_$][\w$]*)\s*=\s*([\s\S]+)$/)
       if (!match) throw new DrxError({ code: "DRX_INVALID_STATE", message: "Invalid state. Expected: st name = initialValue.", file, line: line.no })
       usesState = true
       body.push({
@@ -185,29 +216,18 @@ function collectFunctionBody(lines: Line[], start: number, config: DrxConfig, fi
         code: `const [${match[1]}, ${setterName(match[1])}] = useState(${replaceAw(match[2])})`,
         line: line.no
       })
-      index++
-      continue
-    }
-    if (line.text.startsWith("ef ")) {
-      const match = line.text.match(/^ef\s+(\[.*\])$/)
-      if (!match) throw new DrxError({ code: "DRX_INVALID_EFFECT", message: "Invalid effect. Expected: ef [deps].", file, line: line.no })
-      const block = collectBlock(lines, index, 2)
-      usesEffect = true
-      body.push({ type: "effect", deps: match[1], code: block.text, line: line.no })
-      index = block.next
       continue
     }
 
-    body.push({ type: "statement", code: transformStatement(line.text), line: line.no })
-    index++
+    body.push({ type: "statement", code: transformStatement(stmtText), line: line.no })
   }
 
   return { body, next: index, usesState, usesEffect }
 }
 
 function transformStatement(text: string) {
-  if (text.startsWith("c ")) return text.replace(/^c\s+(.+?)\s*=\s*(.+)$/, (_, left, value) => `const ${left} = ${replaceAw(value)}`)
-  if (text.startsWith("l ")) return text.replace(/^l\s+(.+?)\s*=\s*(.+)$/, (_, left, value) => `let ${left} = ${replaceAw(value)}`)
+  if (text.startsWith("c ")) return text.replace(/^c\s+(.+?)\s*=\s*([\s\S]+)$/, (_, left, value) => `const ${left} = ${replaceAw(value)}`)
+  if (text.startsWith("l ")) return text.replace(/^l\s+(.+?)\s*=\s*([\s\S]+)$/, (_, left, value) => `let ${left} = ${replaceAw(value)}`)
   if (text.startsWith("r ")) return `return ${replaceAw(text.slice(2).trim())}`
   return replaceAw(text)
 }
@@ -225,4 +245,77 @@ function collectBlock(lines: Line[], start: number, childIndent: number) {
     index++
   }
   return { text: body.join("\n"), numberedLines, next: index }
+}
+
+function collectStatement(lines: Line[], start: number) {
+  let index = start + 1
+  const baseIndent = lines[start].indent
+  const parts = [lines[start].text]
+  
+  let braceDepth = 0
+  let parenDepth = 0
+  let bracketDepth = 0
+  
+  function updateDepths(text: string) {
+    let quote: string | null = null
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i]
+      if (quote) {
+        if (char === quote && text[i-1] !== '\\') quote = null
+        continue
+      }
+      if (char === '"' || char === "'" || char === "\`") {
+        quote = char
+        continue
+      }
+      if (char === "{") braceDepth++
+      if (char === "}") braceDepth--
+      if (char === "(") parenDepth++
+      if (char === ")") parenDepth--
+      if (char === "[") bracketDepth++
+      if (char === "]") bracketDepth--
+    }
+  }
+  
+  updateDepths(lines[start].text)
+  
+  while (index < lines.length) {
+    const isContinuation = lines[index].indent > baseIndent
+    const isUnclosed = braceDepth > 0 || parenDepth > 0 || bracketDepth > 0
+    
+    if (!isContinuation && !isUnclosed) {
+      break
+    }
+    
+    const extraIndent = Math.max(0, lines[index].indent - baseIndent)
+    const prefix = "  ".repeat(extraIndent)
+    parts.push(prefix + lines[index].text)
+    
+    updateDepths(lines[index].text)
+    index++
+  }
+  
+  return { text: parts.join("\n"), next: index }
+}
+
+function collectRawBackticks(lines: Line[], start: number) {
+  let index = start + 1
+  const body: string[] = []
+  const baseSpaces = lines[start].rawText.match(/^ */)?.[0].length ?? 0
+  
+  while (index < lines.length) {
+    const line = lines[index]
+    if (line.text === "\`\`\`") {
+      index++
+      break
+    }
+    const prefixToRemove = " ".repeat(baseSpaces)
+    let adjustedLine = line.rawText
+    if (adjustedLine.startsWith(prefixToRemove)) {
+      adjustedLine = adjustedLine.slice(prefixToRemove.length)
+    }
+    body.push(adjustedLine)
+    index++
+  }
+  return { text: body.join("\n"), next: index }
 }

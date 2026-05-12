@@ -67,6 +67,9 @@ function generateNode(node: Node): string {
   if (node.type === "function") {
     const exportPrefix = node.exportDefault ? "export default " : node.exportNamed ? "export " : ""
     const head = `${exportPrefix}${node.async ? "async " : ""}function ${node.name}(${normalizeParams(node.params)})`
+    if (node.body.length === 0) {
+      return `${head}`
+    }
     const body = node.body.map((child) => {
       if (child.type === "ui") return `return (\n${indent(child.jsx)}\n)`
       if (child.type === "raw") return child.code

@@ -118,4 +118,72 @@ ed fn Page()
     expect(output).toContain(`<div className="test">`)
     expect(output).toContain(`Texto`)
   })
+
+  it("compiles multi-line statements and objects with relative indentation", async () => {
+    const output = await compileDrx(
+      `ed fn MultiLine()
+  c obj = {
+    name: "DRX",
+    version: "0.1.4"
+  }
+  st user = {
+    id: 1,
+    name: "Tryhard"
+  }
+  ui
+    <div>{obj.name}</div>
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`const obj = {\n    name: "DRX",\n    version: "0.1.4",\n  }`)
+    expect(output).toContain(`const [user, setUser] = useState({\n    id: 1,\n    name: "Tryhard",\n  })`)
+  })
+
+  it("compiles multi-line effect dependencies", async () => {
+    const output = await compileDrx(
+      `ed fn MultiLineEffect()
+  ef [
+    dep1,
+    dep2
+  ]
+    console.log("Effect")
+  ui
+    <div />
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`useEffect(() => {\n    console.log("Effect")\n  }, [dep1, dep2])`)
+  })
+
+  it("compiles function overloads without body", async () => {
+    const output = await compileDrx(
+      `ex fn QueryCell(opts: OptsA)
+ex fn QueryCell(opts: OptsB)
+  ui
+    <div />
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`export function QueryCell(opts: OptsA)\n\nexport function QueryCell(opts: OptsB) {`)
+  })
+
+  it("compiles raw backtick blocks correctly preserving exact indentation", async () => {
+    const output = await compileDrx(
+      `ed fn RawBackticks()
+  raw \`\`\`
+  const a = {
+    b: 1
+  }
+  \`\`\`
+  ui
+    <div />
+`,
+      { ...defaultConfig, generatedHeader: false }
+    )
+
+    expect(output).toContain(`const a = {\n    b: 1,\n  }`)
+  })
 })
