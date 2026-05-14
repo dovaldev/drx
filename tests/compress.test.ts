@@ -34,7 +34,7 @@ export default function Counter() {
     expect(drx).toContain(`st count = 0`)
     expect(drx).toContain(`<m .min-h-screen .grid .place-items-center>`)
     expect(drx).toContain(`<btn .px-4 .py-2 @click={() => setCount(count + 1)}>`)
-    expect(drx).toContain(`<Link href="/app">"Ir"</Link>`)
+    expect(drx).toContain(`<Link href="/app">Ir</Link>`)
   })
 
   it("compresses mixed imports, named exported functions and arrow components", () => {

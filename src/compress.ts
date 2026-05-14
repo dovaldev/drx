@@ -25,7 +25,9 @@ const htmlTagAliases: Record<string, string> = {
 const printer = ts.createPrinter({ removeComments: true })
 
 export function compressTsx(source: string, config: DrxConfig, options: CompressOptions = {}) {
-  const sourceFile = ts.createSourceFile(options.file ?? "input.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const isTs = options.file?.endsWith(".ts") && !options.file?.endsWith(".d.ts")
+  const scriptKind = isTs ? ts.ScriptKind.TS : ts.ScriptKind.TSX
+  const sourceFile = ts.createSourceFile(options.file ?? "input.tsx", source, ts.ScriptTarget.Latest, true, scriptKind)
   const lines: string[] = []
 
   let currentRawGroup: ts.Node[] = []
@@ -213,7 +215,8 @@ function compressUseState(statement: ts.Statement, sourceFile: ts.SourceFile) {
   if (declaration.initializer.expression.getText(sourceFile) !== "useState") return null
   const firstElement = declaration.name.elements[0]
   if (ts.isOmittedExpression(firstElement)) return null
-  const stateName = firstElement.name.getText(sourceFile)
+  if (!ts.isIdentifier(firstElement.name)) return null
+  const stateName = firstElement.name.text
   let initial = "undefined"
   if (declaration.initializer.arguments[0]) {
     const code = printer.printNode(ts.EmitHint.Unspecified, declaration.initializer.arguments[0], sourceFile)
@@ -283,7 +286,7 @@ function compressJsxNode(node: ts.Node, sourceFile: ts.SourceFile): string[] {
   }
   if (ts.isJsxText(node)) {
     const text = node.getText(sourceFile).replace(/\s+/g, " ").trim()
-    return text ? [`"${text}"`] : []
+    return text ? [text] : []
   }
   const code = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile)
   const singleLine = code.replace(/\r?\n\s*/g, " ")
@@ -306,8 +309,12 @@ function compressAttributes(attributes: ts.JsxAttributes, sourceFile: ts.SourceF
     const name = prop.name.getText(sourceFile)
     const value = prop.initializer
     if (name === "className" && value && ts.isStringLiteral(value)) {
-      parts.push(...value.text.split(/\s+/).filter(Boolean).map((klass) => `.${klass}`))
-      continue
+      const classes = value.text.split(/\s+/).filter(Boolean)
+      const safeClasses = classes.every(c => /^[a-zA-Z0-9_\-:]+$/.test(c))
+      if (safeClasses) {
+        parts.push(...classes.map((klass) => `.${klass}`))
+        continue
+      }
     }
     const eventAlias = reverseEventAlias(name)
     const propName = eventAlias ?? name
@@ -359,7 +366,9 @@ function hasModifier(node: ts.Node, kind: ts.SyntaxKind) {
 }
 
 function isJsx(node: ts.Node): boolean {
-  return ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node) || ts.isJsxFragment(node) || ts.isParenthesizedExpression(node)
+  if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node) || ts.isJsxFragment(node)) return true
+  if (ts.isParenthesizedExpression(node)) return isJsx(node.expression)
+  return false
 }
 
 function returnsJsx(node: ts.Node): boolean {

@@ -52,12 +52,25 @@ function generateImports(program: Program, config: DrxConfig) {
     importsBySource.set("react", react)
   }
 
-  return [...importsBySource.entries()].map(([source, value]) => {
-    const named = [...value.named].sort()
-    const parts = [...value.defaults]
-    if (named.length) parts.push(`{ ${named.join(", ")} }`)
-    return `import ${parts.join(", ")} from "${source}"`
-  })
+  const result: string[] = []
+  for (const [source, value] of importsBySource.entries()) {
+    const named = Array.from(value.named).sort()
+    if (value.defaults.length > 0) {
+      for (const def of value.defaults) {
+        const parts = [def]
+        if (named.length > 0 && def === value.defaults[0]) {
+          parts.push(`{ ${named.join(", ")} }`)
+        }
+        result.push(`import ${parts.join(", ")} from "${source}"`)
+      }
+      if (named.length > 0 && value.defaults.length === 0) {
+        result.push(`import { ${named.join(", ")} } from "${source}"`)
+      }
+    } else if (named.length > 0) {
+      result.push(`import { ${named.join(", ")} } from "${source}"`)
+    }
+  }
+  return result
 }
 
 function generateNode(node: Node): string {

@@ -65,7 +65,7 @@ async function expandFile(cwd: string, config: DrxConfig, file: string) {
   const sourceRoot = path.join(cwd, config.sourceDir)
   const outRoot = path.join(cwd, config.outDir)
   const relative = path.relative(sourceRoot, file)
-  const outFile = path.join(outRoot, relative.replace(/\.drx$/, ".tsx"))
+  const outFile = path.join(outRoot, relative.replace(/\.drx$/, ""))
   const source = await fs.readFile(file, "utf8")
   const tsx = await compileDrx(source, config, {
     file: path.relative(cwd, file),
@@ -91,7 +91,7 @@ async function compressFile(cwd: string, config: DrxConfig, file: string): Promi
   const sourceRoot = path.join(cwd, config.outDir)
   const drxRoot = path.join(cwd, config.sourceDir)
   const relative = path.relative(sourceRoot, file)
-  const outFile = path.join(drxRoot, relative.replace(/\.(tsx|ts|jsx|js)$/, ".drx"))
+  const outFile = path.join(drxRoot, relative + ".drx")
   const source = await fs.readFile(file, "utf8")
   const drx = compressTsx(source, config, { file: path.relative(cwd, file) })
   await fs.ensureDir(path.dirname(outFile))

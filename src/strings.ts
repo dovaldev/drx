@@ -37,11 +37,17 @@ export function splitTopLevel(input: string) {
       continue
     }
     if (char === "{") braceDepth++
-    if (char === "}") braceDepth--
+    if (char === "}") {
+      if (braceDepth > 0) braceDepth--
+    }
     if (char === "(") parenDepth++
-    if (char === ")") parenDepth--
+    if (char === ")") {
+      if (parenDepth > 0) parenDepth--
+    }
     if (char === "[") bracketDepth++
-    if (char === "]") bracketDepth--
+    if (char === "]") {
+      if (bracketDepth > 0) bracketDepth--
+    }
     if (/\s/.test(char) && braceDepth === 0 && parenDepth === 0 && bracketDepth === 0) {
       if (current) tokens.push(current)
       current = ""

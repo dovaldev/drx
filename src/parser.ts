@@ -282,7 +282,6 @@ function collectStatement(lines: Line[], start: number) {
       .replace(/"[^"]*"/g, "") // remove double quote strings
       .replace(/'[^']*'/g, "") // remove single quote strings
       .replace(/`[^`]*`/g, "") // remove template strings (single line)
-      .replace(/\/[^/]+\/[gimuy]*/g, "") // remove regex literals
 
     for (let i = 0; i < cleanText.length; i++) {
       const char = cleanText[i]

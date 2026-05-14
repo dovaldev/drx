@@ -48,7 +48,6 @@ function transformLine(
   }
   result += line.slice(cursor)
 
-  result = unquoteTextOutsideTags(result)
   return result
 }
 
@@ -81,15 +80,11 @@ function scanTags(line: string): TagMatch[] {
       continue
     }
 
-    if (braceDepth > 0) {
-      i++
-      continue
-    }
-
     if (char === "<" && /[A-Za-z/]/.test(line[i + 1] ?? "")) {
       const start = i
       let tagQuote: string | null = null
       let tagBraceDepth = 0
+      let tagBracketDepth = 0
       i++
       while (i < line.length) {
         const tChar = line[i]
@@ -104,8 +99,14 @@ function scanTags(line: string): TagMatch[] {
           continue
         }
         if (tChar === "{") tagBraceDepth++
-        if (tChar === "}") tagBraceDepth--
-        if (tChar === ">" && tagBraceDepth === 0) break
+        if (tChar === "}") {
+          if (tagBraceDepth > 0) tagBraceDepth--
+        }
+        if (tChar === "[") tagBracketDepth++
+        if (tChar === "]") {
+          if (tagBracketDepth > 0) tagBracketDepth--
+        }
+        if (tChar === ">" && tagBraceDepth === 0 && tagBracketDepth === 0) break
         i++
       }
       if (line[i] !== ">") {
@@ -132,22 +133,7 @@ function scanTags(line: string): TagMatch[] {
   return matches
 }
 
-function unquoteTextOutsideTags(line: string) {
-  let result = ""
-  let inTag = false
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-    if (char === "<") inTag = true
-    if (char === ">") {
-      inTag = false
-      result += char
-      continue
-    }
-    if (!inTag && char === '"') continue
-    result += char
-  }
-  return result
-}
+
 
 function transformTag(
   match: TagMatch,
@@ -171,7 +157,7 @@ function resolveTag(tag: string, config: DrxConfig) {
 }
 
 function transformAttrs(source: string, config: DrxConfig, file: string | undefined, line: number) {
-  if (!source) return ""
+  if (!source) return "";
   const tokens = splitTopLevel(source)
   const classes: string[] = []
   const attrs: string[] = []
@@ -219,6 +205,7 @@ function transformAttrs(source: string, config: DrxConfig, file: string | undefi
 }
 
 function splitAttr(token: string): [string, string?] {
+  if (token.startsWith("{") && token.endsWith("}")) return [token]
   const index = token.indexOf("=")
   if (index === -1) return [token]
   return [token.slice(0, index), token.slice(index + 1)]
@@ -230,7 +217,84 @@ function stripBraces(value: string) {
 }
 
 function formatPropValue(value: string) {
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) return value
+  if (value.startsWith('"') && value.endsWith('"')) {
+    if (value.includes('\\"')) return `{${value}}`
+    return value
+  }
+  if (value.startsWith("'") && value.endsWith("'")) {
+    if (value.includes("\\'")) return `{${value}}`
+    return value
+  }
   if (value.startsWith("{") && value.endsWith("}")) return value
   return `{${value}}`
+}
+
+function unquoteTextOutsideTags(line: string) {
+  let result = ""
+  let i = 0
+  let braceDepth = 0
+  let bracketDepth = 0
+  let inTag = false
+  let quote: string | null = null
+
+  while (i < line.length) {
+    const char = line[i]
+    if (quote) {
+      result += char
+      if (char === quote) quote = null
+      i++
+      continue
+    }
+    if (char === '"' || char === "'") {
+      if (!inTag && braceDepth === 0) {
+        if (char === '"') {
+          i++
+          continue
+        }
+      }
+      quote = char
+      result += char
+      i++
+      continue
+    }
+    if (char === "{") {
+      braceDepth++
+      result += char
+      i++
+      continue
+    }
+    if (char === "}") {
+      if (braceDepth > 0) braceDepth--
+      result += char
+      i++
+      continue
+    }
+    if (char === "[") {
+      bracketDepth++
+      result += char
+      i++
+      continue
+    }
+    if (char === "]") {
+      if (bracketDepth > 0) bracketDepth--
+      result += char
+      i++
+      continue
+    }
+    if (char === "<" && braceDepth === 0) {
+      inTag = true
+      result += char
+      i++
+      continue
+    }
+    if (char === ">" && inTag && bracketDepth === 0) {
+      inTag = false
+      result += char
+      i++
+      continue
+    }
+    result += char
+    i++
+  }
+  return result
 }

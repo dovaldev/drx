@@ -69,7 +69,7 @@ export const defaultConfig: DrxConfig = {
     "@blur": "onBlur",
     "@key": "onKeyDown"
   },
-  ignore: ["node_modules/**", ".next/**", "dist/**", ".drx/**", "src-drx/**"]
+  ignore: ["**/node_modules/**", "**/.next/**", "**/dist/**", "**/.drx/**", "**/src-drx/**"]
 }
 
 export async function loadConfig(cwd = process.cwd()): Promise<DrxConfig> {
