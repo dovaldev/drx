@@ -17,6 +17,7 @@ export type ImportNode = { type: "import"; imported: string; source: string; lin
 export type FunctionNode = {
   type: "function"
   name: string
+  typeParams?: string
   params: string
   async: boolean
   exportDefault: boolean

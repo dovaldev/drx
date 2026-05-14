@@ -1,5 +1,7 @@
 # DRX / DovReact
 
+> **Note**: DRX is primarily an **AI Context Minimizer**, not a fully lossless build tool. Its main purpose is to drastically reduce token consumption when feeding entire codebases to AI coding tools (by shortening HTML/JSX, consolidating imports, and removing whitespace). While the `drx expand` functionality works well for basic components, complex TypeScript constructs may require fallback `raw` blocks or manual adjustments. Focus on using it to optimize context, not as a perfect two-way TSX <> DRX compiler.
+
 DRX is a compact representation layer for React and Next.js projects. It helps
 AI coding tools read a smaller version of an existing project, understand its
 structure, and then work either in DRX or in the original source code.

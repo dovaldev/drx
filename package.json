@@ -1,6 +1,6 @@
 {
   "name": "@dovaldev/drx",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "DRX compiler for React and Next.js projects",
   "type": "module",
   "packageManager": "pnpm@11.1.1",

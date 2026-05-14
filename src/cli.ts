@@ -4,7 +4,7 @@ import { aiContextCommand, checkCommand, compressCommand, expandCommand, initCom
 
 const program = new Command()
 
-program.name("drx").description("DRX / DovReact compiler").version("0.1.0")
+program.name("drx").description("DRX / DovReact compiler (AI Context Minimizer)").version("0.1.8")
 program.command("init").description("Create drx.config.json").action(() => runCommand(() => initCommand()))
 program.command("check").description("Validate .drx files").action(() => runCommand(() => checkCommand()))
 program.command("expand").description("Compile .drx files to .tsx").action(() => runCommand(() => expandCommand()))

@@ -118,7 +118,7 @@ function parseTopLevel(lines: Line[], index: number, config: DrxConfig, file?: s
 
   let fnText = line.text
   let fnIndex = index
-  if (/^(?:(?:ed|ex)\s+)?(?:async\s+)?fn\s+[A-Za-z_$][\w$]*\(/.test(fnText) && !fnText.endsWith(")")) {
+  if (/^(?:(?:ed|ex)\s+)?(?:async\s+)?fn\s+[A-Za-z_$][\w$]*(?:<.*>)?\(/.test(fnText) && !fnText.endsWith(")")) {
     while (fnIndex + 1 < lines.length) {
       fnIndex++
       fnText += " " + lines[fnIndex].text
@@ -152,14 +152,15 @@ function parseTopLevel(lines: Line[], index: number, config: DrxConfig, file?: s
 }
 
 function parseFunctionHeader(text: string) {
-  const match = text.match(/^(?:(ed|ex)\s+)?(async\s+)?fn\s+([A-Za-z_$][\w$]*)\((.*)\)$/)
+  const match = text.match(/^(?:(ed|ex)\s+)?(async\s+)?fn\s+([A-Za-z_$][\w$]*)(<.*>)?\((.*)\)$/)
   if (!match) return null
   return {
     exportDefault: match[1] === "ed",
     exportNamed: match[1] === "ex",
     async: Boolean(match[2]),
     name: match[3],
-    params: match[4]
+    typeParams: match[4] || "",
+    params: match[5]
   }
 }
 
@@ -232,7 +233,7 @@ function collectFunctionBody(lines: Line[], start: number, config: DrxConfig, fi
       usesState = true
       body.push({
         type: "statement",
-        code: `const [${match[1]}, ${setterName(match[1])}] = useState(${replaceAw(match[2])})`,
+        code: `const [${match[1]}, ${setterName(match[1])}] = useState(${replaceAw(match[2])});`,
         line: line.no
       })
       continue
@@ -245,9 +246,9 @@ function collectFunctionBody(lines: Line[], start: number, config: DrxConfig, fi
 }
 
 function transformStatement(text: string) {
-  if (text.startsWith("c ")) return text.replace(/^c\s+(.+?)\s*=\s*([\s\S]+)$/, (_, left, value) => `const ${left} = ${replaceAw(value)}`)
-  if (text.startsWith("l ")) return text.replace(/^l\s+(.+?)\s*=\s*([\s\S]+)$/, (_, left, value) => `let ${left} = ${replaceAw(value)}`)
-  if (text.startsWith("r ")) return `return ${replaceAw(text.slice(2).trim())}`
+  if (text.startsWith("c ")) return text.replace(/^c\s+(.+?)\s*=\s*([\s\S]+)$/, (_, left, value) => `const ${left} = ${replaceAw(value)};`)
+  if (text.startsWith("l ")) return text.replace(/^l\s+(.+?)\s*=\s*([\s\S]+)$/, (_, left, value) => `let ${left} = ${replaceAw(value)};`)
+  if (text.startsWith("r ")) return `return ${replaceAw(text.slice(2).trim())};`
   return replaceAw(text)
 }
 

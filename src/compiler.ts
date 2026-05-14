@@ -56,14 +56,16 @@ function generateImports(program: Program, config: DrxConfig) {
   for (const [source, value] of importsBySource.entries()) {
     const named = Array.from(value.named).sort()
     if (value.defaults.length > 0) {
+      let namedProcessed = false
       for (const def of value.defaults) {
         const parts = [def]
         if (named.length > 0 && def === value.defaults[0]) {
           parts.push(`{ ${named.join(", ")} }`)
+          namedProcessed = true
         }
         result.push(`import ${parts.join(", ")} from "${source}"`)
       }
-      if (named.length > 0 && value.defaults.length === 0) {
+      if (named.length > 0 && !namedProcessed) {
         result.push(`import { ${named.join(", ")} } from "${source}"`)
       }
     } else if (named.length > 0) {
@@ -79,7 +81,8 @@ function generateNode(node: Node): string {
   if (node.type === "statement") return node.code
   if (node.type === "function") {
     const exportPrefix = node.exportDefault ? "export default " : node.exportNamed ? "export " : ""
-    const head = `${exportPrefix}${node.async ? "async " : ""}function ${node.name}(${normalizeParams(node.params)})`
+    const typeParams = node.typeParams || ""
+    const head = `${exportPrefix}${node.async ? "async " : ""}function ${node.name}${typeParams}(${normalizeParams(node.params)})`
     if (node.body.length === 0) {
       return `${head}`
     }

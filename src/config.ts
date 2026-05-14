@@ -20,7 +20,7 @@ export type DrxConfig = {
 
 export const defaultConfig: DrxConfig = {
   sourceDir: "src-drx",
-  outDir: "src",
+  outDir: ".",
   framework: "next",
   mode: "jsx-lite",
   generatedHeader: true,
