@@ -1,4 +1,4 @@
-import fs from "fs-extra"
+import fs from "node:fs/promises"
 import path from "node:path"
 
 export type DrxConfig = {
@@ -74,8 +74,8 @@ export const defaultConfig: DrxConfig = {
 
 export async function loadConfig(cwd = process.cwd()): Promise<DrxConfig> {
   const configPath = path.join(cwd, "drx.config.json")
-  if (!(await fs.pathExists(configPath))) return defaultConfig
-  const userConfig = await fs.readJson(configPath)
+  if (!(await pathExists(configPath))) return defaultConfig
+  const userConfig = JSON.parse(await fs.readFile(configPath, "utf8"))
   return {
     ...defaultConfig,
     ...userConfig,
@@ -90,6 +90,15 @@ export async function loadConfig(cwd = process.cwd()): Promise<DrxConfig> {
 
 export async function writeDefaultConfig(cwd = process.cwd()) {
   const configPath = path.join(cwd, "drx.config.json")
-  await fs.writeJson(configPath, defaultConfig, { spaces: 2 })
+  await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2))
   return configPath
+}
+
+async function pathExists(p: string) {
+  try {
+    await fs.access(p)
+    return true
+  } catch {
+    return false
+  }
 }

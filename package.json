@@ -1,6 +1,6 @@
 {
   "name": "@dovaldev/drx",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "DRX compiler for React and Next.js projects",
   "type": "module",
   "packageManager": "pnpm@11.1.1",
@@ -44,18 +44,18 @@
     "prepublishOnly": "pnpm check && pnpm test && pnpm build",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "lint": "prettier --check .",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "chokidar": "5.0.0",
     "commander": "14.0.3",
     "fast-glob": "3.3.3",
-    "fs-extra": "11.3.5",
     "prettier": "3.8.3",
     "typescript": "6.0.3"
   },
   "devDependencies": {
-    "@types/fs-extra": "11.0.4",
     "@types/node": "25.6.2",
     "tsup": "8.5.1",
     "tsx": "4.21.0",

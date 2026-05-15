@@ -1,6 +1,6 @@
 import chokidar from "chokidar"
 import fg from "fast-glob"
-import fs from "fs-extra"
+import fs from "node:fs/promises"
 import path from "node:path"
 import { generateAiContext } from "./aiContext.js"
 import { compileDrx } from "./compiler.js"
@@ -11,7 +11,7 @@ import { parseDrx } from "./parser.js"
 
 export async function initCommand(cwd = process.cwd()) {
   const configPath = await writeDefaultConfig(cwd)
-  await fs.ensureDir(path.join(cwd, "src-drx"))
+  await fs.mkdir(path.join(cwd, "src-drx"), { recursive: true })
   console.log(`Created ${path.relative(cwd, configPath)}`)
 }
 
@@ -65,13 +65,13 @@ async function expandFile(cwd: string, config: DrxConfig, file: string) {
   const sourceRoot = path.join(cwd, config.sourceDir)
   const outRoot = path.join(cwd, config.outDir)
   const relative = path.relative(sourceRoot, file)
-  const outFile = path.join(outRoot, relative.replace(/\.drx$/, ""))
+  const outFile = path.join(outRoot, relative.replace(/\.drx$/, ".tsx"))
   const source = await fs.readFile(file, "utf8")
   const tsx = await compileDrx(source, config, {
     file: path.relative(cwd, file),
     sourcePath: path.relative(cwd, file)
   })
-  await fs.ensureDir(path.dirname(outFile))
+  await fs.mkdir(path.dirname(outFile), { recursive: true })
   await fs.writeFile(outFile, tsx)
   console.log(`${path.relative(cwd, file)} -> ${path.relative(cwd, outFile)}`)
 }
@@ -91,10 +91,10 @@ async function compressFile(cwd: string, config: DrxConfig, file: string): Promi
   const sourceRoot = path.join(cwd, config.outDir)
   const drxRoot = path.join(cwd, config.sourceDir)
   const relative = path.relative(sourceRoot, file)
-  const outFile = path.join(drxRoot, relative + ".drx")
+  const outFile = path.join(drxRoot, relative.replace(/\.(tsx|ts|jsx|js)$/, ".drx"))
   const source = await fs.readFile(file, "utf8")
   const drx = compressTsx(source, config, { file: path.relative(cwd, file) })
-  await fs.ensureDir(path.dirname(outFile))
+  await fs.mkdir(path.dirname(outFile), { recursive: true })
   await fs.writeFile(outFile, drx)
   console.log(`${path.relative(cwd, file)} -> ${path.relative(cwd, outFile)}`)
   const sourceTokens = estimateTokens(source)
@@ -114,7 +114,7 @@ async function compressFile(cwd: string, config: DrxConfig, file: string): Promi
 async function writeCompressionReport(cwd: string, config: DrxConfig, files: CompressionFileStats[]) {
   const metaDir = path.join(cwd, ".drx")
   const reportPath = path.join(metaDir, "compression-report.md")
-  await fs.ensureDir(metaDir)
+  await fs.mkdir(metaDir, { recursive: true })
   await fs.writeFile(reportPath, compressionReportMarkdown(config, files))
   return reportPath
 }
@@ -183,14 +183,23 @@ function formatNumber(value: number) {
 
 async function findDrxFiles(cwd: string, config: DrxConfig) {
   const sourceRoot = path.join(cwd, config.sourceDir)
-  if (!(await fs.pathExists(sourceRoot))) return []
+  if (!(await pathExists(sourceRoot))) return []
   return fg("**/*.drx", { cwd: sourceRoot, absolute: true })
 }
 
 async function findRuntimeFiles(cwd: string, config: DrxConfig) {
   const outRoot = path.join(cwd, config.outDir)
-  if (!(await fs.pathExists(outRoot))) return []
+  if (!(await pathExists(outRoot))) return []
   return fg("**/*.{tsx,jsx,ts,js}", { cwd: outRoot, absolute: true, ignore: config.ignore })
+}
+
+async function pathExists(p: string) {
+  try {
+    await fs.access(p)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function runCommand(action: () => Promise<void>) {

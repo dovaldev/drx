@@ -30,7 +30,7 @@ ex fn transformJsxLite(lines: string[], config: DrxConfig, file?: string)
         code: "DRX_UNCLOSED_TAG",
         message: `Unclosed JSX tag <${open.tag}>.`,
         file,
-        line: open.line
+        line: open.line,
       });
     }
 
@@ -106,7 +106,7 @@ fn scanTags(line: string)
           closing: full.startsWith("</"),
           tag: parsed[1],
           attrs: parsed[2] ?? "",
-          selfClosing: /\/\s*>$/.test(full)
+          selfClosing: /\/\s*>$/.test(full),
         });
       }
       i++;
@@ -144,7 +144,7 @@ fn transformTag(match: TagMatch, config: DrxConfig, file: string | undefined, li
           code: "DRX_MISMATCHED_TAG",
           message: `Unexpected closing tag </${tag}>.`,
           file,
-          line
+          line,
         });
       }
       return `</${tag}>`;
@@ -187,7 +187,7 @@ fn transformAttrs(source: string, config: DrxConfig, file: string | undefined, l
             message: `Unknown event alias "${alias}".`,
             file,
             line,
-            hint: alias === "@clik" ? "Did you mean \"@click\"?" : undefined
+            hint: alias === "@clik" ? 'Did you mean "@click"?' : undefined,
           });
         }
         attrs.push(`${eventName}={${stripBraces(rawValue ?? "")}}`);
@@ -231,7 +231,8 @@ fn stripBraces(value: string)
 fn formatPropValue(value: string)
 
   raw
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
+    if ((value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'")))
       return value;
     if (value.startsWith("{") && value.endsWith("}"))
       return value;

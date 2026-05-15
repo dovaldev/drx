@@ -1,5 +1,5 @@
 import fg from "fast-glob"
-import fs from "fs-extra"
+import fs from "node:fs/promises"
 import path from "node:path"
 import { DrxConfig } from "./config.js"
 
@@ -47,16 +47,25 @@ export async function generateAiContext(cwd: string, config: DrxConfig) {
   }
 
   const metaDir = path.join(cwd, ".drx")
-  await fs.ensureDir(metaDir)
+  await fs.mkdir(metaDir, { recursive: true })
   await fs.writeFile(path.join(metaDir, "rules.md"), rulesMarkdown(config))
-  await fs.writeJson(path.join(metaDir, "manifest.json"), summary, { spaces: 2 })
+  await fs.writeFile(path.join(metaDir, "manifest.json"), JSON.stringify(summary, null, 2))
   await fs.writeFile(path.join(metaDir, "ai-context.md"), contextMarkdown(summary, config))
   return summary
 }
 
 async function listFiles(root: string, pattern: string | string[], cwd: string, ignore: string[] = []) {
-  if (!(await fs.pathExists(root))) return []
+  if (!(await pathExists(root))) return []
   return fg(pattern, { cwd: root, absolute: true, ignore }).then((files) => files.map((file) => path.relative(cwd, file)).sort())
+}
+
+async function pathExists(p: string) {
+  try {
+    await fs.access(p)
+    return true
+  } catch {
+    return false
+  }
 }
 
 function findRoutes(drxFiles: string[], tsxFiles: string[], contentFiles: string[]) {

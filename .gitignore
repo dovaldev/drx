@@ -1,5 +1,15 @@
 # ==========================================
-# Build & Dependencies
+# 📦 Local Examples & Large Demos
+# ==========================================
+# Large external projects used for local testing
+examples/cal.com/
+examples/calcom-context-improved-demo/
+examples/*/node_modules/
+examples/*/dist/
+examples/*/.next/
+
+# ==========================================
+# 📦 Build & Dependencies
 # ==========================================
 node_modules/
 .pnpm-store/
@@ -19,42 +29,73 @@ out/
 .serverless/
 .drx/
 .local/
-
-# ==========================================
-# Logs & Testing
-# ==========================================
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
 coverage/
 .nyc_output/
-.tox/
+
+# TS incremental build cache
+*.tsbuildinfo
 
 # ==========================================
-# Environment Variables & Secrets
+# 🔐 Secrets & Privacy (Tokens, Keys, Env)
 # ==========================================
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.pem
-*.key
-*.cert
-*.sqlite
-
-# Keep environment example files
+.env.*
 !.env.example
 !.env.sample
 !.env.template
 
+# Package manager secrets
+.npmrc
+.yarnrc
+.yarnrc.yml
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+auth.json
+
+# Private keys & certificates
+*.pem
+*.key
+*.cert
+*.pfx
+*.p12
+
+# Database secrets
+*.sqlite
+*.db
+
 # ==========================================
-# OS Generated Files
+# 🛠️ IDEs & Tooling
+# ==========================================
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+*.code-workspace
+
+# Trae, Cursor, Zed & AI Tools
+.trae/
+.cursor/
+.cursorrules
+.zed/
+.idea/
+*.iws
+*.iml
+*.ipr
+.fleet/
+.nova/
+
+# Vim / Emacs
+*.swp
+*.swo
+*~
+.*.swp
+Session.vim
+.netrwhist
+
+# ==========================================
+# 🖥️ System Files
 # ==========================================
 .DS_Store
 .DS_Store?
@@ -66,47 +107,7 @@ Thumbs.db
 Desktop.ini
 
 # ==========================================
-# IDEs and Editors
-# ==========================================
-# VS Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.code-workspace
-
-# Trae, Cursor & Zed
-.trae/
-.cursor/
-.cursorrules
-.zed/
-
-# JetBrains / IntelliJ
-.idea/
-*.iws
-*.iml
-*.ipr
-out/
-
-# Fleet & Nova
-.fleet/
-.nova/
-
-# Vim / Neovim / Emacs
-*.swp
-*.swo
-*~
-.*.swp
-Session.vim
-.netrwhist
-
-# Sublime Text
-*.sublime-workspace
-*.sublime-project
-
-# ==========================================
-# Archives & Misc
+# 📦 Archives & Misc
 # ==========================================
 *.tgz
 *.tar.gz
@@ -115,10 +116,4 @@ Session.vim
 *.7z
 *.bak
 *.tmp
-
-# ==========================================
-# Local Examples & Demos
-# ==========================================
-examples/cal.com/
-examples/calcom-context-improved-demo/
-
+*.log

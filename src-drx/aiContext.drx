@@ -34,28 +34,16 @@ ex async fn generateAiContext(cwd: string, config: DrxConfig)
   c drxFiles = aw listFiles(drxRoot, "**/*.drx", cwd)
   c tsxFiles = aw listFiles(outRoot, ["**/*.{tsx,jsx}", "**/route.{ts,js}"], cwd, config.ignore)
   c contentFiles = aw listFiles(outRoot, ["**/*.{md,mdx}", "content/**/*"], cwd, config.ignore)
-  c configFiles = aw listFiles(cwd, ["next.config.*", "vite.config.*", "theme.config.*", "tailwind.config.*", "postcss.config.*", "package.json"], cwd, config.ignore)
+  c configFiles = aw listFiles(cwd, [ "next.config.*", "vite.config.*", "theme.config.*", "tailwind.config.*", "postcss.config.*", "package.json", ], cwd, config.ignore)
   c symbols = aw collectDrxSymbols(cwd, drxFiles)
-  raw
-    const summary: ProjectSummary = {
-      generatedAt: new Date().toISOString(),
-      sourceDir: config.sourceDir,
-      outDir: config.outDir,
-      drxFiles,
-      tsxFiles,
-      contentFiles,
-      configFiles,
-      routes: findRoutes(drxFiles, tsxFiles, contentFiles),
-      components: findComponents(drxFiles, tsxFiles),
-      apiFiles: tsxFiles.filter((file) => /(^|\/)(api|route)\//.test(file) || file.endsWith("/route.ts") || file.endsWith("/route.tsx")),
-      symbols
-    };
-
+  c summary = { generatedAt: new Date().toISOString(), sourceDir: config.sourceDir, outDir: config.outDir, drxFiles, tsxFiles, contentFiles, configFiles, routes: findRoutes(drxFiles, tsxFiles, contentFiles), components: findComponents(drxFiles, tsxFiles), apiFiles: tsxFiles.filter((file) => /(^|\/)(api|route)\//.test(file) || file.endsWith("/route.ts") || file.endsWith("/route.tsx")), symbols, }
   c metaDir = path.join(cwd, ".drx")
   raw
     await fs.ensureDir(metaDir);
     await fs.writeFile(path.join(metaDir, "rules.md"), rulesMarkdown(config));
-    await fs.writeJson(path.join(metaDir, "manifest.json"), summary, { spaces: 2 });
+    await fs.writeJson(path.join(metaDir, "manifest.json"), summary, {
+      spaces: 2,
+    });
     await fs.writeFile(path.join(metaDir, "ai-context.md"), contextMarkdown(summary, config));
 
   r summary
@@ -68,110 +56,16 @@ async fn listFiles(root: string, pattern: string | string[], cwd: string, ignore
   r fg(pattern, { cwd: root, absolute: true, ignore }).then((files) => files.map((file) => path.relative(cwd, file)).sort())
 fn findRoutes(drxFiles: string[], tsxFiles: string[], contentFiles: string[])
 
-  raw
-    return [...drxFiles, ...tsxFiles, ...contentFiles]
-      .filter((file) => /(^|\/)app\/.*(page|layout|route)\.(drx|tsx|ts|jsx|js)$/.test(file) || /(^|\/)pages\/.+\.(drx|tsx|jsx|mdx|md)$/.test(file))
-      .sort();
-
+  r [...drxFiles, ...tsxFiles, ...contentFiles] .filter((file) => /(^|\/)app\/.*(page|layout|route)\.(drx|tsx|ts|jsx|js)$/.test(file) || /(^|\/)pages\/.+\.(drx|tsx|jsx|mdx|md)$/.test(file)) .sort()
 fn findComponents(drxFiles: string[], tsxFiles: string[])
 
-  raw
-    return [...drxFiles, ...tsxFiles]
-      .filter((file) => /(^|\/)components\/.+\.(drx|tsx|ts|jsx|js)$/.test(file))
-      .sort();
-
+  r [...drxFiles, ...tsxFiles] .filter((file) => /(^|\/)components\/.+\.(drx|tsx|ts|jsx|js)$/.test(file)) .sort()
 fn contextMarkdown(summary: ProjectSummary, config: DrxConfig)
 
-  raw
-    return `# DRX AI Context
-
-    Generated: ${summary.generatedAt}
-
-    ## Project
-
-    - DRX source: \`${summary.sourceDir}\`
-    - Generated/runtime source: \`${summary.outDir}\`
-    - Framework: \`${config.framework}\`
-    - Ignore patterns: ${config.ignore.map((item) => `\`${item}\``).join(", ")}
-
-    ## How To Work
-
-    1. Read \`.drx/rules.md\`.
-    2. Prefer editing \`${summary.sourceDir}\` when the feature touches React/Next UI.
-    3. Run \`pnpm dev -- check\`.
-    4. Run \`pnpm dev -- expand\`.
-    5. Do not edit generated TSX directly unless explicitly requested.
-
-    ## Routes
-
-    ${list(summary.routes)}
-
-    ## Components
-
-    ${list(summary.components)}
-
-    ## Content Files
-
-    ${list(summary.contentFiles)}
-
-    ## Config Files
-
-    ${list(summary.configFiles)}
-
-    ## DRX Symbols
-
-    ${symbolList(summary.symbols)}
-
-    ## API / Backend Files
-
-    ${list(summary.apiFiles)}
-
-    ## Aliases
-
-    ### Imports
-
-    ${aliasList(config.aliases)}
-
-    ### Tags
-
-    ${aliasList(config.tagAliases)}
-
-    ### Events
-
-    ${aliasList(config.eventAliases)}
-    `;
-
+  r `# DRX AI Context Generated: ${summary.generatedAt} ## Project - DRX source: \`${summary.sourceDir}\` - Generated/runtime source: \`${summary.outDir}\` - Framework: \`${config.framework}\` - Ignore patterns: ${config.ignore.map((item) => `\`${item}\``).join(", ")} ## How To Work 1. Read \`.drx/rules.md\`. 2. Prefer editing \`${summary.sourceDir}\` when the feature touches React/Next UI. 3. Run \`pnpm dev -- check\`. 4. Run \`pnpm dev -- expand\`. 5. Do not edit generated TSX directly unless explicitly requested. ## Routes ${list(summary.routes)} ## Components ${list(summary.components)} ## Content Files ${list(summary.contentFiles)} ## Config Files ${list(summary.configFiles)} ## DRX Symbols ${symbolList(summary.symbols)} ## API / Backend Files ${list(summary.apiFiles)} ## Aliases ### Imports ${aliasList(config.aliases)} ### Tags ${aliasList(config.tagAliases)} ### Events ${aliasList(config.eventAliases)} `
 fn rulesMarkdown(config: DrxConfig)
 
-  raw
-    return `# DRX Rules
-
-    DRX is a compact JSX-compatible syntax that compiles to React/Next TSX.
-
-    Core rules:
-
-    - \`i X f pkg\` = \`import X from "pkg"\`
-    - \`i {A,B} f pkg\` = \`import { A, B } from "pkg"\`
-    - \`ed fn Name()\` = \`export default function Name()\`
-    - \`ex fn Name()\` = \`export function Name()\`
-    - \`fn Name()\` = \`function Name()\`
-    - \`c name = value\` = \`const name = value\`
-    - \`l name = value\` = \`let name = value\`
-    - \`aw\` = \`await\`
-    - \`r value\` = \`return value\`
-    - \`st name = value\` = \`const [name, setName] = useState(value)\`
-    - \`ef [deps]\` = \`useEffect(() => {}, [deps])\`
-    - \`ui\` starts the returned JSX block
-    - \`.class\` inside a tag becomes \`className\`
-    - \`raw\` preserves full JS/TS/TSX
-
-    Prefer readable names. Use \`raw\` for unsupported syntax.
-
-    Known tag aliases:
-
-    ${aliasList(config.tagAliases)}
-    `;
-
+  r `# DRX Rules DRX is a compact JSX-compatible syntax that compiles to React/Next TSX. Core rules: - \`i X f pkg\` = \`import X from "pkg"\` - \`i {A,B} f pkg\` = \`import { A, B } from "pkg"\` - \`ed fn Name()\` = \`export default function Name()\` - \`ex fn Name()\` = \`export function Name()\` - \`fn Name()\` = \`function Name()\` - \`c name = value\` = \`const name = value\` - \`l name = value\` = \`let name = value\` - \`aw\` = \`aw\` - \`r value\` = \`return value\` - \`st name = value\` = \`const [name, setName] = useState(value)\` - \`ef [deps]\` = \`useEffect(() => {}, [deps])\` - \`ui\` starts the returned JSX block - \`.class\` inside a tag becomes \`className\` - \`raw\` preserves full JS/TS/TSX Prefer readable names. Use \`raw\` for unsupported syntax. Known tag aliases: ${aliasList(config.tagAliases)} `
 fn list(items: string[])
 
   r items.length ? items.map((item) => `- \`${item}\``).join("\n") : "- None found"
@@ -187,9 +81,13 @@ async fn collectDrxSymbols(cwd: string, files: string[])
         if (fn) {
           symbols.push({
             name: fn[3],
-            kind: fn[1] === "ed" ? "default-function" : fn[1] === "ex" ? "exported-function" : "function",
+            kind: fn[1] === "ed"
+              ? "default-function"
+              : fn[1] === "ex"
+                ? "exported-function"
+                : "function",
             file,
-            line: index + 1
+            line: index + 1,
           });
           return;
         }
@@ -199,12 +97,22 @@ async fn collectDrxSymbols(cwd: string, files: string[])
           return;
         }
         if (/^ef\s+\[/.test(trimmed)) {
-          symbols.push({ name: "useEffect", kind: "effect", file, line: index + 1 });
+          symbols.push({
+            name: "useEffect",
+            kind: "effect",
+            file,
+            line: index + 1,
+          });
           return;
         }
         const imported = trimmed.match(/^i\s+(.+)\s+f\s+(.+)$/);
         if (imported)
-          symbols.push({ name: imported[1], kind: "import", file, line: index + 1 });
+          symbols.push({
+            name: imported[1],
+            kind: "import",
+            file,
+            line: index + 1,
+          });
       });
     }
 
@@ -215,10 +123,7 @@ fn symbolList(symbols: ProjectSymbol[])
     if (!symbols.length)
       return "- None found";
 
-  r symbols.map((symbol) => `- \`${symbol.name}\` (${symbol.kind}) in \`${symbol.file}:${symbol.line}\``).join("\n")
+  r symbols .map((symbol) => `- \`${symbol.name}\` (${symbol.kind}) in \`${symbol.file}:${symbol.line}\``) .join("\n")
 fn aliasList(record: Record<string, string>)
 
-  raw
-    return Object.entries(record)
-      .map(([key, value]) => `- \`${key}\` -> \`${value}\``)
-      .join("\n");
+  r Object.entries(record) .map(([key, value]) => `- \`${key}\` -> \`${value}\``) .join("\n")

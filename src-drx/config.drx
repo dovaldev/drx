@@ -35,7 +35,7 @@ raw
       ni: "next/image",
       lc: "lucide-react",
       fm: "framer-motion",
-      rq: "@tanstack/react-query"
+      rq: "@tanstack/react-query",
     },
     namedAliases: {
       uS: "useState",
@@ -43,7 +43,7 @@ raw
       uM: "useMemo",
       uC: "useCallback",
       uR: "useRef",
-      uCtx: "useContext"
+      uCtx: "useContext",
     },
     tagAliases: {
       m: "main",
@@ -59,7 +59,7 @@ raw
       inp: "input",
       ta: "textarea",
       sel: "select",
-      opt: "option"
+      opt: "option",
     },
     componentAliases: {},
     eventAliases: {
@@ -69,9 +69,9 @@ raw
       "@input": "onInput",
       "@focus": "onFocus",
       "@blur": "onBlur",
-      "@key": "onKeyDown"
+      "@key": "onKeyDown",
     },
-    ignore: ["node_modules/**", ".next/**", "dist/**", ".drx/**", "src-drx/**"]
+    ignore: ["node_modules/**", ".next/**", "dist/**", ".drx/**", "src-drx/**"],
   };
 
 ex async fn loadConfig(cwd = process.cwd())
@@ -81,18 +81,7 @@ ex async fn loadConfig(cwd = process.cwd())
       return defaultConfig;
 
   c userConfig = aw fs.readJson(configPath)
-  raw
-    return {
-      ...defaultConfig,
-      ...userConfig,
-      aliases: { ...defaultConfig.aliases, ...userConfig.aliases },
-      namedAliases: { ...defaultConfig.namedAliases, ...userConfig.namedAliases },
-      tagAliases: { ...defaultConfig.tagAliases, ...userConfig.tagAliases },
-      componentAliases: { ...defaultConfig.componentAliases, ...userConfig.componentAliases },
-      eventAliases: { ...defaultConfig.eventAliases, ...userConfig.eventAliases },
-      ignore: userConfig.ignore ?? defaultConfig.ignore
-    };
-
+  r { ...defaultConfig, ...userConfig, aliases: { ...defaultConfig.aliases, ...userConfig.aliases }, namedAliases: { ...defaultConfig.namedAliases, ...userConfig.namedAliases }, tagAliases: { ...defaultConfig.tagAliases, ...userConfig.tagAliases }, componentAliases: { ...defaultConfig.componentAliases, ...userConfig.componentAliases, }, eventAliases: { ...defaultConfig.eventAliases, ...userConfig.eventAliases }, ignore: userConfig.ignore ?? defaultConfig.ignore, }
 ex async fn writeDefaultConfig(cwd = process.cwd())
   c configPath = path.join(cwd, "drx.config.json")
   raw

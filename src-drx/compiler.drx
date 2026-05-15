@@ -33,18 +33,22 @@ ex fn generateProgram(program: Program, config: DrxConfig, sourcePath?: string)
   r chunks.filter(Boolean).join("\n\n")
 fn generateImports(program: Program, config: DrxConfig)
 
+  c importsBySource = new Map<string, { defaults: string[]; named: Set<string>; }>()
   raw
-    const importsBySource = new Map<string, {
-      defaults: string[];
-      named: Set<string>;
-    }>();
     for (const node of program.nodes) {
       if (node.type !== "import")
         continue;
       const source = config.aliases[node.source] ?? stripQuotes(node.source);
-      const target = importsBySource.get(source) ?? { defaults: [], named: new Set<string>() };
+      const target = importsBySource.get(source) ?? {
+        defaults: [],
+        named: new Set<string>(),
+      };
       if (node.imported.startsWith("{") && node.imported.endsWith("}")) {
-        for (const item of node.imported.slice(1, -1).split(",").map((part) => part.trim()).filter(Boolean)) {
+        for (const item of node.imported
+          .slice(1, -1)
+          .split(",")
+          .map((part) => part.trim())
+          .filter(Boolean)) {
           target.named.add(config.namedAliases[item] ?? item);
         }
       }
@@ -54,21 +58,18 @@ fn generateImports(program: Program, config: DrxConfig)
       importsBySource.set(source, target);
     }
     if (config.autoImportHooks && (program.usesState || program.usesEffect)) {
-      const react = importsBySource.get("react") ?? { defaults: [], named: new Set<string>() };
+      const react = importsBySource.get("react") ?? {
+        defaults: [],
+        named: new Set<string>(),
+      };
       if (program.usesState)
         react.named.add("useState");
       if (program.usesEffect)
         react.named.add("useEffect");
       importsBySource.set("react", react);
     }
-    return [...importsBySource.entries()].map(([source, value]) => {
-      const named = [...value.named].sort();
-      const parts = [...value.defaults];
-      if (named.length)
-        parts.push(`{ ${named.join(", ")} }`);
-      return `import ${parts.join(", ")} from "${source}"`;
-    });
 
+  r [...importsBySource.entries()].map(([source, value]) => { const named = [...value.named].sort(); const parts = [...value.defaults]; if (named.length) parts.push(`{ ${named.join(", ")} }`); return `import ${parts.join(", ")} from "${source}"`; })
 fn generateNode(node: Node)
 
   raw
@@ -79,7 +80,11 @@ fn generateNode(node: Node)
     if (node.type === "statement")
       return node.code;
     if (node.type === "function") {
-      const exportPrefix = node.exportDefault ? "export default " : node.exportNamed ? "export " : "";
+      const exportPrefix = node.exportDefault
+        ? "export default "
+        : node.exportNamed
+          ? "export "
+          : "";
       const head = `${exportPrefix}${node.async ? "async " : ""}function ${node.name}(${normalizeParams(node.params)})`;
       const body = node.body.map((child) => {
         if (child.type === "ui")
@@ -98,12 +103,7 @@ fn generateNode(node: Node)
   r ""
 fn indent(value: string)
 
-  raw
-    return value
-      .split("\n")
-      .map((line) => (line ? `  ${line}` : line))
-      .join("\n");
-
+  r value .split("\n") .map((line) => (line ? ` ${line}` : line)) .join("\n")
 fn stripQuotes(value: string)
 
   r value.replace(/^["']|["']$/g, "")

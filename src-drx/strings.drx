@@ -3,16 +3,7 @@ ex fn setterName(name: string)
 ex fn replaceAw(value: string)
   r value.replace(/\baw\b/g, "aw")
 ex fn normalizeParams(params: string)
-  raw
-    return params
-      .replace(/\{\s*/g, "{ ")
-      .replace(/\s*\}/g, " }")
-      .replace(/,\s*/g, ", ")
-      .replace(/:\s*/g, ": ")
-      .replace(/\s+/g, " ")
-      .replace(/\{\s+\}/g, "{}")
-      .trim();
-
+  r params .replace(/\{\s*/g, "{ ") .replace(/\s*\}/g, " }") .replace(/,\s*/g, ", ") .replace(/:\s*/g, ": ") .replace(/\s+/g, " ") .replace(/\{\s+\}/g, "{}") .trim()
 ex fn splitTopLevel(input: string)
   c tokens = []
   l current = ""
@@ -45,7 +36,10 @@ ex fn splitTopLevel(input: string)
         bracketDepth++;
       if (char === "]")
         bracketDepth--;
-      if (/\s/.test(char) && braceDepth === 0 && parenDepth === 0 && bracketDepth === 0) {
+      if (/\s/.test(char) &&
+        braceDepth === 0 &&
+        parenDepth === 0 &&
+        bracketDepth === 0) {
         if (current)
           tokens.push(current);
         current = "";

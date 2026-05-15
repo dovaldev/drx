@@ -66,7 +66,7 @@ ex async fn aiContextCommand(cwd = process.cwd())
 ex async fn watchCommand(cwd = process.cwd())
   c config = aw loadConfig(cwd)
   c sourceRoot = path.join(cwd, config.sourceDir)
-  c watcher = chokidar.watch("**/*.drx", { cwd: sourceRoot, ignoreInitial: false })
+  c watcher = chokidar.watch("**/*.drx", { cwd: sourceRoot, ignoreInitial: false, })
   raw
     watcher.on("add", (relative) => expandFile(cwd, config, path.join(sourceRoot, relative)).catch(logError));
     watcher.on("change", (relative) => expandFile(cwd, config, path.join(sourceRoot, relative)).catch(logError));
@@ -79,11 +79,8 @@ async fn expandFile(cwd: string, config: DrxConfig, file: string)
   c relative = path.relative(sourceRoot, file)
   c outFile = path.join(outRoot, relative.replace(/\.drx$/, ".tsx"))
   c source = aw fs.readFile(file, "utf8")
+  c tsx = aw compileDrx(source, config, { file: path.relative(cwd, file), sourcePath: path.relative(cwd, file), })
   raw
-    const tsx = await compileDrx(source, config, {
-      file: path.relative(cwd, file),
-      sourcePath: path.relative(cwd, file)
-    });
     await fs.ensureDir(path.dirname(outFile));
     await fs.writeFile(outFile, tsx);
     console.log(`${path.relative(cwd, file)} -> ${path.relative(cwd, outFile)}`);
@@ -116,18 +113,7 @@ async fn compressFile(cwd: string, config: DrxConfig, file: string)
 
   c sourceTokens = estimateTokens(source)
   c drxTokens = estimateTokens(drx)
-  raw
-    return {
-      runtimeFile: path.relative(cwd, file),
-      drxFile: path.relative(cwd, outFile),
-      sourceChars: source.length,
-      drxChars: drx.length,
-      sourceTokens,
-      drxTokens,
-      savedTokens: sourceTokens - drxTokens,
-      rawBlocks: countRawBlocks(drx)
-    };
-
+  r { runtimeFile: path.relative(cwd, file), drxFile: path.relative(cwd, outFile), sourceChars: source.length, drxChars: drx.length, sourceTokens, drxTokens, savedTokens: sourceTokens - drxTokens, rawBlocks: countRawBlocks(drx), }
 async fn writeCompressionReport(cwd: string, config: DrxConfig, files: CompressionFileStats[])
 
   c metaDir = path.join(cwd, ".drx")
@@ -139,43 +125,10 @@ async fn writeCompressionReport(cwd: string, config: DrxConfig, files: Compressi
   r reportPath
 fn compressionReportMarkdown(config: DrxConfig, files: CompressionFileStats[])
 
-  raw
-    const totals = files.reduce((acc, file) => ({
-      sourceChars: acc.sourceChars + file.sourceChars,
-      drxChars: acc.drxChars + file.drxChars,
-      sourceTokens: acc.sourceTokens + file.sourceTokens,
-      drxTokens: acc.drxTokens + file.drxTokens,
-      savedTokens: acc.savedTokens + file.savedTokens,
-      rawBlocks: acc.rawBlocks + file.rawBlocks
-    }), { sourceChars: 0, drxChars: 0, sourceTokens: 0, drxTokens: 0, savedTokens: 0, rawBlocks: 0 });
-
+  c totals = files.reduce((acc, file) => ({ sourceChars: acc.sourceChars + file.sourceChars, drxChars: acc.drxChars + file.drxChars, sourceTokens: acc.sourceTokens + file.sourceTokens, drxTokens: acc.drxTokens + file.drxTokens, savedTokens: acc.savedTokens + file.savedTokens, rawBlocks: acc.rawBlocks + file.rawBlocks, }), { sourceChars: 0, drxChars: 0, sourceTokens: 0, drxTokens: 0, savedTokens: 0, rawBlocks: 0, })
   c tokenReduction = percent(totals.savedTokens, totals.sourceTokens)
   c charReduction = percent(totals.sourceChars - totals.drxChars, totals.sourceChars)
-  raw
-    return `# DRX Compression Report
-
-    Generated: ${new Date().toISOString()}
-
-    ## Summary
-
-    - Runtime source: \`${config.outDir}\`
-    - DRX source: \`${config.sourceDir}\`
-    - Files compressed: ${files.length}
-    - Estimated original context: ${formatNumber(totals.sourceTokens)} tokens
-    - Estimated DRX context: ${formatNumber(totals.drxTokens)} tokens
-    - Estimated tokens saved: ${formatNumber(totals.savedTokens)} (${tokenReduction})
-    - Character reduction: ${formatNumber(totals.sourceChars)} -> ${formatNumber(totals.drxChars)} (${charReduction})
-    - Raw fallback blocks: ${formatNumber(totals.rawBlocks)}
-
-    Token estimates use a simple \`characters / 4\` heuristic. Actual savings vary by model tokenizer.
-
-    ## Files
-
-    | Runtime | DRX | Original tokens | DRX tokens | Saved | Reduction | Raw blocks |
-    | --- | --- | ---: | ---: | ---: | ---: | ---: |
-    ${files.map(fileReportRow).join("\n") || "| None | None | 0 | 0 | 0 | 0% | 0 |"}
-    `;
-
+  r `# DRX Compression Report Generated: ${new Date().toISOString()} ## Summary - Runtime source: \`${config.outDir}\` - DRX source: \`${config.sourceDir}\` - Files compressed: ${files.length} - Estimated original context: ${formatNumber(totals.sourceTokens)} tokens - Estimated DRX context: ${formatNumber(totals.drxTokens)} tokens - Estimated tokens saved: ${formatNumber(totals.savedTokens)} (${tokenReduction}) - Character reduction: ${formatNumber(totals.sourceChars)} -> ${formatNumber(totals.drxChars)} (${charReduction}) - Raw fallback blocks: ${formatNumber(totals.rawBlocks)} Token estimates use a simple \`characters / 4\` heuristic. Actual savings vary by model tokenizer. ## Files | Runtime | DRX | Original tokens | DRX tokens | Saved | Reduction | Raw blocks | | --- | --- | ---: | ---: | ---: | ---: | ---: | ${files.map(fileReportRow).join("\n") || "| None | None | 0 | 0 | 0 | 0% | 0 |"} `
 fn fileReportRow(file: CompressionFileStats)
 
   r `| \`${file.runtimeFile}\` | \`${file.drxFile}\` | ${formatNumber(file.sourceTokens)} | ${formatNumber(file.drxTokens)} | ${formatNumber(file.savedTokens)} | ${percent(file.savedTokens, file.sourceTokens)} | ${file.rawBlocks} |`
@@ -214,7 +167,7 @@ async fn findRuntimeFiles(cwd: string, config: DrxConfig)
     if (!(await fs.pathExists(outRoot)))
       return [];
 
-  r fg("**/*.{tsx,jsx,ts,js}", { cwd: outRoot, absolute: true, ignore: config.ignore })
+  r fg("**/*.{tsx,jsx,ts,js}", { cwd: outRoot, absolute: true, ignore: config.ignore, })
 ex async fn runCommand(action: () => Promise<void>)
   raw
     try {
