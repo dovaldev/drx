@@ -128,7 +128,7 @@ ed fn Page()
       `ed fn MultiLine()
   c obj = {
     name: "DRX",
-    version: "0.1.4"
+    version: "0.1.10"
   }
   st user = {
     id: 1,
@@ -141,7 +141,7 @@ ed fn Page()
     );
 
     expect(output).toContain(
-      `const obj = {\n    name: "DRX",\n    version: "0.1.4",\n  }`,
+      `const obj = {\n    name: "DRX",\n    version: "0.1.10",\n  }`,
     );
     expect(output).toContain(
       `const [user, setUser] = useState({\n    id: 1,\n    name: "Tryhard",\n  })`,

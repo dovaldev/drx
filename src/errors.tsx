@@ -2,37 +2,37 @@
 // Source: src-drx/errors.drx
 
 export class DrxError extends Error {
-  code: string;
-  file?: string;
-  line?: number;
-  column?: number;
-  hint?: string;
+  code: string
+  file?: string
+  line?: number
+  column?: number
+  hint?: string
   constructor(options: {
-    code: string;
-    message: string;
-    file?: string;
-    line?: number;
-    column?: number;
-    hint?: string;
+    code: string
+    message: string
+    file?: string
+    line?: number
+    column?: number
+    hint?: string
   }) {
-    super(options.message);
-    this.name = "DrxError";
-    this.code = options.code;
-    this.file = options.file;
-    this.line = options.line;
-    this.column = options.column;
-    this.hint = options.hint;
+    super(options.message)
+    this.name = "DrxError"
+    this.code = options.code
+    this.file = options.file
+    this.line = options.line
+    this.column = options.column
+    this.hint = options.hint
   }
   format() {
-    const location = [this.file, this.line].filter(Boolean).join(":");
-    const head = location ? `${this.code} ${location}` : this.code;
-    return `${head}\n${this.message}${this.hint ? `\nHint: ${this.hint}` : ""}`;
+    const location = [this.file, this.line].filter(Boolean).join(":")
+    const head = location ? `${this.code} ${location}` : this.code
+    return `${head}\n${this.message}${this.hint ? `\nHint: ${this.hint}` : ""}`
   }
 }
 
 export function formatError(error: unknown) {
-  if (error instanceof DrxError) return error.format();
-  if (error instanceof Error) return error.message;
+  if (error instanceof DrxError) return error.format()
+  if (error instanceof Error) return error.message
 
-  return String(error);
+  return String(error)
 }

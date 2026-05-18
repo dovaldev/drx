@@ -2,66 +2,66 @@
 // Source: src-drx/ast.drx
 
 export type Program = {
-  nodes: Node[];
-  usesState: boolean;
-  usesEffect: boolean;
-};
+  nodes: Node[]
+  usesState: boolean
+  usesEffect: boolean
+}
 export type Node =
   | DirectiveNode
   | ImportNode
   | FunctionNode
   | StatementNode
   | RawNode
-  | CommentNode;
+  | CommentNode
 export type DirectiveNode = {
-  type: "directive";
-  value: string;
-};
+  type: "directive"
+  value: string
+}
 export type ImportNode = {
-  type: "import";
-  imported: string;
-  source: string;
-  line: number;
-};
+  type: "import"
+  imported: string
+  source: string
+  line: number
+}
 export type FunctionNode = {
-  type: "function";
-  name: string;
-  params: string;
-  async: boolean;
-  exportDefault: boolean;
-  exportNamed: boolean;
-  body: FunctionBodyNode[];
-  line: number;
-};
+  type: "function"
+  name: string
+  params: string
+  async: boolean
+  exportDefault: boolean
+  exportNamed: boolean
+  body: FunctionBodyNode[]
+  line: number
+}
 export type FunctionBodyNode =
   | StatementNode
   | UiNode
   | RawNode
   | EffectNode
-  | CommentNode;
+  | CommentNode
 export type StatementNode = {
-  type: "statement";
-  code: string;
-  line: number;
-};
+  type: "statement"
+  code: string
+  line: number
+}
 export type RawNode = {
-  type: "raw";
-  code: string;
-  line: number;
-};
+  type: "raw"
+  code: string
+  line: number
+}
 export type CommentNode = {
-  type: "comment";
-  code: string;
-  line: number;
-};
+  type: "comment"
+  code: string
+  line: number
+}
 export type EffectNode = {
-  type: "effect";
-  deps: string;
-  code: string;
-  line: number;
-};
+  type: "effect"
+  deps: string
+  code: string
+  line: number
+}
 export type UiNode = {
-  type: "ui";
-  jsx: string;
-  line: number;
-};
+  type: "ui"
+  jsx: string
+  line: number
+}

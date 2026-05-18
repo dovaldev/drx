@@ -15,7 +15,7 @@ const program = new Command();
 program
   .name("drx")
   .description("DRX / DovReact compiler (AI Context Minimizer)")
-  .version("0.1.9");
+  .version("0.1.10");
 program
   .command("init")
   .description("Create drx.config.json")

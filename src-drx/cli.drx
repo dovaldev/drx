@@ -5,7 +5,7 @@ i {aiContextCommand,checkCommand,compressCommand,expandCommand,initCommand,runCo
 raw
 
   const program = new Command();
-  program.name("drx").description("DRX / DovReact compiler").version("0.1.0");
+  program.name("drx").description("DRX / DovReact compiler").version("0.1.10");
   program
     .command("init")
     .description("Create drx.config.json")

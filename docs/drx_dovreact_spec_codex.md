@@ -1,6 +1,6 @@
 # DRX / DovReact — Especificación completa para crear el lenguaje
 
-Versión: `0.1.0`
+Versión: `0.1.10`
 
 Nombre provisional: **DRX** / **DovReact**
 
