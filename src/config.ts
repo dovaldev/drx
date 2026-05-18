@@ -1,22 +1,22 @@
-import fs from "node:fs/promises"
-import path from "node:path"
+import fs from "node:fs/promises";
+import path from "node:path";
 
 export type DrxConfig = {
-  sourceDir: string
-  outDir: string
-  framework: "next" | "react"
-  mode: "jsx-lite"
-  generatedHeader: boolean
-  formatWithPrettier: boolean
-  autoImportHooks: boolean
-  keepUnknownAsRaw: boolean
-  aliases: Record<string, string>
-  namedAliases: Record<string, string>
-  tagAliases: Record<string, string>
-  componentAliases: Record<string, string>
-  eventAliases: Record<string, string>
-  ignore: string[]
-}
+  sourceDir: string;
+  outDir: string;
+  framework: "next" | "react";
+  mode: "jsx-lite";
+  generatedHeader: boolean;
+  formatWithPrettier: boolean;
+  autoImportHooks: boolean;
+  keepUnknownAsRaw: boolean;
+  aliases: Record<string, string>;
+  namedAliases: Record<string, string>;
+  tagAliases: Record<string, string>;
+  componentAliases: Record<string, string>;
+  eventAliases: Record<string, string>;
+  ignore: string[];
+};
 
 export const defaultConfig: DrxConfig = {
   sourceDir: "src-drx",
@@ -33,7 +33,7 @@ export const defaultConfig: DrxConfig = {
     ni: "next/image",
     lc: "lucide-react",
     fm: "framer-motion",
-    rq: "@tanstack/react-query"
+    rq: "@tanstack/react-query",
   },
   namedAliases: {
     uS: "useState",
@@ -41,7 +41,7 @@ export const defaultConfig: DrxConfig = {
     uM: "useMemo",
     uC: "useCallback",
     uR: "useRef",
-    uCtx: "useContext"
+    uCtx: "useContext",
   },
   tagAliases: {
     m: "main",
@@ -57,7 +57,7 @@ export const defaultConfig: DrxConfig = {
     inp: "input",
     ta: "textarea",
     sel: "select",
-    opt: "option"
+    opt: "option",
   },
   componentAliases: {},
   eventAliases: {
@@ -67,38 +67,47 @@ export const defaultConfig: DrxConfig = {
     "@input": "onInput",
     "@focus": "onFocus",
     "@blur": "onBlur",
-    "@key": "onKeyDown"
+    "@key": "onKeyDown",
   },
-  ignore: ["**/node_modules/**", "**/.next/**", "**/dist/**", "**/.drx/**", "**/src-drx/**"]
-}
+  ignore: [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/.drx/**",
+    "**/src-drx/**",
+  ],
+};
 
 export async function loadConfig(cwd = process.cwd()): Promise<DrxConfig> {
-  const configPath = path.join(cwd, "drx.config.json")
-  if (!(await pathExists(configPath))) return defaultConfig
-  const userConfig = JSON.parse(await fs.readFile(configPath, "utf8"))
+  const configPath = path.join(cwd, "drx.config.json");
+  if (!(await pathExists(configPath))) return defaultConfig;
+  const userConfig = JSON.parse(await fs.readFile(configPath, "utf8"));
   return {
     ...defaultConfig,
     ...userConfig,
     aliases: { ...defaultConfig.aliases, ...userConfig.aliases },
     namedAliases: { ...defaultConfig.namedAliases, ...userConfig.namedAliases },
     tagAliases: { ...defaultConfig.tagAliases, ...userConfig.tagAliases },
-    componentAliases: { ...defaultConfig.componentAliases, ...userConfig.componentAliases },
+    componentAliases: {
+      ...defaultConfig.componentAliases,
+      ...userConfig.componentAliases,
+    },
     eventAliases: { ...defaultConfig.eventAliases, ...userConfig.eventAliases },
-    ignore: userConfig.ignore ?? defaultConfig.ignore
-  }
+    ignore: userConfig.ignore ?? defaultConfig.ignore,
+  };
 }
 
 export async function writeDefaultConfig(cwd = process.cwd()) {
-  const configPath = path.join(cwd, "drx.config.json")
-  await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2))
-  return configPath
+  const configPath = path.join(cwd, "drx.config.json");
+  await fs.writeFile(configPath, JSON.stringify(defaultConfig, null, 2));
+  return configPath;
 }
 
 async function pathExists(p: string) {
   try {
-    await fs.access(p)
-    return true
+    await fs.access(p);
+    return true;
   } catch {
-    return false
+    return false;
   }
 }

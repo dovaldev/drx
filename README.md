@@ -133,12 +133,12 @@ ed fn Counter()
 Generates:
 
 ```tsx
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
 export default function Counter() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
     <main className="min-h-screen grid place-items-center">
@@ -150,7 +150,7 @@ export default function Counter() {
         Add
       </button>
     </main>
-  )
+  );
 }
 ```
 

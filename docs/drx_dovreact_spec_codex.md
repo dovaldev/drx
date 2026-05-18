@@ -45,12 +45,12 @@ ed fn Counter()
 Salida TSX:
 
 ```tsx
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
 export default function Counter() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
     <main className="min-h-screen grid place-items-center bg-zinc-950 text-white">
@@ -65,7 +65,7 @@ export default function Counter() {
         </button>
       </section>
     </main>
-  )
+  );
 }
 ```
 
@@ -386,10 +386,10 @@ ed fn Page()
 Salida:
 
 ```tsx
-"use client"
+"use client";
 
 export default function Page() {
-  return <main>Hola</main>
+  return <main>Hola</main>;
 }
 ```
 
@@ -410,7 +410,7 @@ i Link f nl
 TSX:
 
 ```tsx
-import Link from "next/link"
+import Link from "next/link";
 ```
 
 `nl` se resuelve desde `aliases`.
@@ -426,7 +426,7 @@ i {Search,FileText} f lc
 TSX:
 
 ```tsx
-import { Search, FileText } from "lucide-react"
+import { Search, FileText } from "lucide-react";
 ```
 
 ## 12.3 Import named con aliases internos
@@ -440,7 +440,7 @@ i {uS,uE} f r
 TSX:
 
 ```tsx
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 ```
 
 ## 12.4 Import desde string completo
@@ -455,8 +455,8 @@ i { cn } f "@/lib/utils"
 TSX:
 
 ```tsx
-import Button from "@/components/Button"
-import { cn } from "@/lib/utils"
+import Button from "@/components/Button";
+import { cn } from "@/lib/utils";
 ```
 
 ## 12.5 Import mixto — opcional v0.2
@@ -470,7 +470,7 @@ i React,{uS} f r
 TSX:
 
 ```tsx
-import React, { useState } from "react"
+import React, { useState } from "react";
 ```
 
 No obligatorio en MVP.
@@ -493,7 +493,7 @@ TSX:
 
 ```tsx
 export default function Page() {
-  return <main>Hola</main>
+  return <main>Hola</main>;
 }
 ```
 
@@ -511,7 +511,7 @@ TSX:
 
 ```tsx
 function Hero() {
-  return <section>Hero</section>
+  return <section>Hero</section>;
 }
 ```
 
@@ -531,9 +531,9 @@ TSX:
 
 ```tsx
 export default async function Page() {
-  const data = await getData()
+  const data = await getData();
 
-  return <main>{data.title}</main>
+  return <main>{data.title}</main>;
 }
 ```
 
@@ -561,7 +561,7 @@ function Card({ title, text }) {
       <h2>{title}</h2>
       <p>{text}</p>
     </div>
-  )
+  );
 }
 ```
 
@@ -581,7 +581,7 @@ TSX:
 
 ```tsx
 function Card({ title }: { title: string }) {
-  return <h2>{title}</h2>
+  return <h2>{title}</h2>;
 }
 ```
 
@@ -602,7 +602,7 @@ c title = "Hola"
 TSX:
 
 ```tsx
-const title = "Hola"
+const title = "Hola";
 ```
 
 ## 14.2 Let
@@ -616,7 +616,7 @@ l count = 0
 TSX:
 
 ```tsx
-let count = 0
+let count = 0;
 ```
 
 ## 14.3 Await
@@ -630,7 +630,7 @@ c data = aw getData()
 TSX:
 
 ```tsx
-const data = await getData()
+const data = await getData();
 ```
 
 ## 14.4 Return manual
@@ -644,7 +644,7 @@ r data
 TSX:
 
 ```tsx
-return data
+return data;
 ```
 
 `r` es opcional para MVP, pero recomendado.
@@ -662,7 +662,7 @@ st count = 0
 TSX:
 
 ```tsx
-const [count, setCount] = useState(0)
+const [count, setCount] = useState(0);
 ```
 
 Regla de setter:
@@ -690,14 +690,14 @@ ed fn Counter()
 TSX:
 
 ```tsx
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 
 export default function Counter() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
-  return <p>{count}</p>
+  return <p>{count}</p>;
 }
 ```
 
@@ -716,8 +716,8 @@ TSX:
 
 ```tsx
 useEffect(() => {
-  console.log("mounted")
-}, [])
+  console.log("mounted");
+}, []);
 ```
 
 Con dependencia:
@@ -731,8 +731,8 @@ TSX:
 
 ```tsx
 useEffect(() => {
-  console.log(count)
-}, [count])
+  console.log(count);
+}, [count]);
 ```
 
 Si se usa `ef`, auto-importar `useEffect`.
@@ -752,8 +752,8 @@ TSX:
 
 ```tsx
 const value = useMemo(() => {
-  return expensiveCalculation()
-}, [deps])
+  return expensiveCalculation();
+}, [deps]);
 ```
 
 ```drx
@@ -765,8 +765,8 @@ TSX:
 
 ```tsx
 const handleClick = useCallback(() => {
-  setCount(count + 1)
-}, [count])
+  setCount(count + 1);
+}, [count]);
 ```
 
 ---
@@ -793,7 +793,7 @@ export default function Page() {
     <main className="p-6">
       <h1>Hola</h1>
     </main>
-  )
+  );
 }
 ```
 
@@ -1117,9 +1117,9 @@ Entonces:
 Podría generar automáticamente:
 
 ```tsx
-import Card from "@/components/Card"
+import Card from "@/components/Card";
 
-<Card title="Hola" />
+<Card title="Hola" />;
 ```
 
 ## 19.12 Nombres recomendados para alias
@@ -1416,7 +1416,9 @@ if loading
 TSX:
 
 ```tsx
-{loading && <Spinner />}
+{
+  loading && <Spinner />;
+}
 ```
 
 ## 24.2 If con bloque
@@ -1433,11 +1435,13 @@ if user
 TSX:
 
 ```tsx
-{user && (
-  <div>
-    <h2>{user.name}</h2>
-  </div>
-)}
+{
+  user && (
+    <div>
+      <h2>{user.name}</h2>
+    </div>
+  );
+}
 ```
 
 ## 24.3 Else — v0.2
@@ -1454,7 +1458,9 @@ else
 TSX:
 
 ```tsx
-{user ? <UserCard user={user} /> : <LoginCard />}
+{
+  user ? <UserCard user={user} /> : <LoginCard />;
+}
 ```
 
 No obligatorio en MVP.
@@ -1475,9 +1481,9 @@ for users as user
 TSX:
 
 ```tsx
-{users.map((user) => (
-  <UserCard key={user.id} user={user} />
-))}
+{
+  users.map((user) => <UserCard key={user.id} user={user} />);
+}
 ```
 
 ## 25.2 For con índice
@@ -1492,9 +1498,9 @@ for users as user,i
 TSX:
 
 ```tsx
-{users.map((user, i) => (
-  <UserCard key={i} user={user} />
-))}
+{
+  users.map((user, i) => <UserCard key={i} user={user} />);
+}
 ```
 
 ---
@@ -1516,8 +1522,8 @@ raw
 TSX:
 
 ```tsx
-export const dynamic = "force-dynamic"
-export const revalidate = 60
+export const dynamic = "force-dynamic";
+export const revalidate = 60;
 ```
 
 ## 26.2 Raw dentro de función
@@ -1538,9 +1544,9 @@ TSX:
 ```tsx
 async function getData() {
   const res = await fetch("https://api.example.com", {
-    next: { revalidate: 60 }
-  })
-  return res.json()
+    next: { revalidate: 60 },
+  });
+  return res.json();
 }
 ```
 
@@ -1634,8 +1640,8 @@ Salida esperada `src/app/page.tsx`:
 // Generated by DRX. Do not edit directly.
 // Source: src-drx/app/page.drx
 
-import Link from "next/link"
-import { Search, FileText, Sparkles } from "lucide-react"
+import Link from "next/link";
+import { Search, FileText, Sparkles } from "lucide-react";
 
 export default function Page() {
   return (
@@ -1644,7 +1650,7 @@ export default function Page() {
       <Features />
       <CTA />
     </main>
-  )
+  );
 }
 
 function Hero() {
@@ -1655,23 +1661,39 @@ function Hero() {
         Analiza licitaciones públicas con IA
       </h1>
       <p className="mt-6 max-w-2xl text-lg text-neutral-300">
-        Resume documentos, encuentra requisitos y decide mejor antes de presentarte.
+        Resume documentos, encuentra requisitos y decide mejor antes de
+        presentarte.
       </p>
-      <Link className="mt-8 inline-flex rounded-xl bg-blue-500 px-6 py-3 font-semibold" href="/app">
+      <Link
+        className="mt-8 inline-flex rounded-xl bg-blue-500 px-6 py-3 font-semibold"
+        href="/app"
+      >
         Probar gratis
       </Link>
     </section>
-  )
+  );
 }
 
 function Features() {
   return (
     <section className="mx-auto grid max-w-6xl gap-6 px-6 pb-24 md:grid-cols-3">
-      <Feature icon={Search} title="Busca" text="Encuentra oportunidades relevantes." />
-      <Feature icon={FileText} title="Resume" text="Convierte documentos largos en puntos claros." />
-      <Feature icon={Sparkles} title="Decide" text="Evalúa si merece la pena presentarte." />
+      <Feature
+        icon={Search}
+        title="Busca"
+        text="Encuentra oportunidades relevantes."
+      />
+      <Feature
+        icon={FileText}
+        title="Resume"
+        text="Convierte documentos largos en puntos claros."
+      />
+      <Feature
+        icon={Sparkles}
+        title="Decide"
+        text="Evalúa si merece la pena presentarte."
+      />
     </section>
-  )
+  );
 }
 
 function Feature({ icon: Icon, title, text }) {
@@ -1681,7 +1703,7 @@ function Feature({ icon: Icon, title, text }) {
       <h2 className="mt-5 text-xl font-bold">{title}</h2>
       <p className="mt-2 text-neutral-400">{text}</p>
     </div>
-  )
+  );
 }
 
 function CTA() {
@@ -1689,13 +1711,18 @@ function CTA() {
     <section className="mx-auto max-w-6xl px-6 pb-24">
       <div className="rounded-3xl bg-white p-10 text-neutral-950">
         <h2 className="text-3xl font-bold">Empieza con una licitación real</h2>
-        <p className="mt-3 text-neutral-600">Pega el enlace o documento y obtén un primer resumen.</p>
-        <Link className="mt-6 inline-flex rounded-xl bg-neutral-950 px-6 py-3 font-semibold text-white" href="/app">
+        <p className="mt-3 text-neutral-600">
+          Pega el enlace o documento y obtén un primer resumen.
+        </p>
+        <Link
+          className="mt-6 inline-flex rounded-xl bg-neutral-950 px-6 py-3 font-semibold text-white"
+          href="/app"
+        >
           Abrir herramienta
         </Link>
       </div>
     </section>
-  )
+  );
 }
 ```
 
@@ -1756,9 +1783,9 @@ packages/drx/
 
 ```ts
 export type DrxProgram = {
-  type: "Program"
-  body: DrxNode[]
-}
+  type: "Program";
+  body: DrxNode[];
+};
 
 export type DrxNode =
   | DirectiveNode
@@ -1776,102 +1803,109 @@ export type DrxNode =
   | ForNode
   | JsxElementNode
   | JsxTextNode
-  | JsxExpressionNode
+  | JsxExpressionNode;
 
 export type DirectiveNode = {
-  type: "Directive"
-  value: string
-}
+  type: "Directive";
+  value: string;
+};
 
 export type ImportNode = {
-  type: "Import"
-  defaultImport?: string
-  namedImports?: string[]
-  source: string
-}
+  type: "Import";
+  defaultImport?: string;
+  namedImports?: string[];
+  source: string;
+};
 
 export type FunctionNode = {
-  type: "Function"
-  name: string
-  params: string
-  async: boolean
-  exportDefault: boolean
-  body: DrxNode[]
-}
+  type: "Function";
+  name: string;
+  params: string;
+  async: boolean;
+  exportDefault: boolean;
+  body: DrxNode[];
+};
 
 export type ConstNode = {
-  type: "Const"
-  left: string
-  value: string
-}
+  type: "Const";
+  left: string;
+  value: string;
+};
 
 export type LetNode = {
-  type: "Let"
-  left: string
-  value: string
-}
+  type: "Let";
+  left: string;
+  value: string;
+};
 
 export type ReturnNode = {
-  type: "Return"
-  value: string
-}
+  type: "Return";
+  value: string;
+};
 
 export type StateNode = {
-  type: "State"
-  name: string
-  initialValue: string
-}
+  type: "State";
+  name: string;
+  initialValue: string;
+};
 
 export type EffectNode = {
-  type: "Effect"
-  deps: string
-  body: DrxNode[]
-}
+  type: "Effect";
+  deps: string;
+  body: DrxNode[];
+};
 
 export type UiNode = {
-  type: "Ui"
-  children: JsxChildNode[]
-}
+  type: "Ui";
+  children: JsxChildNode[];
+};
 
-export type JsxChildNode = JsxElementNode | JsxTextNode | JsxExpressionNode | IfNode | ForNode | RawNode | CommentNode
+export type JsxChildNode =
+  | JsxElementNode
+  | JsxTextNode
+  | JsxExpressionNode
+  | IfNode
+  | ForNode
+  | RawNode
+  | CommentNode;
 
 export type JsxElementNode = {
-  type: "JsxElement"
-  tag: string
-  classes: string[]
-  props: JsxProp[]
-  events: JsxEvent[]
-  selfClosing: boolean
-  children: JsxChildNode[]
-}
+  type: "JsxElement";
+  tag: string;
+  classes: string[];
+  props: JsxProp[];
+  events: JsxEvent[];
+  selfClosing: boolean;
+  children: JsxChildNode[];
+};
 
 export type JsxProp = {
-  name: string
-  value?: string
-  kind: "string" | "expression" | "boolean" | "number"
-}
+  name: string;
+  value?: string;
+  kind: "string" | "expression" | "boolean" | "number";
+};
 
 export type JsxEvent = {
-  alias: string
-  name: string
-  value: string
-  kind: "expression"
-}
+  alias: string;
+  name: string;
+  value: string;
+  kind: "expression";
+};
 
 export type JsxTextNode = {
-  type: "JsxText"
-  value: string
-}
+  type: "JsxText";
+  value: string;
+};
 
 export type JsxExpressionNode = {
-  type: "JsxExpression"
-  value: string
-}
+  type: "JsxExpression";
+  value: string;
+};
 
 export type RawNode = {
-  type: "Raw"
-  code: string
-}
+  type: "Raw";
+  code: string;
+};
 ```
 
 ---
@@ -2015,14 +2049,14 @@ ed fn App()
 TSX:
 
 ```tsx
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 
 export default function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
-    console.log(count)
-  }, [count])
+    console.log(count);
+  }, [count]);
 }
 ```
 
@@ -2034,11 +2068,11 @@ Crear `DrxError`:
 
 ```ts
 export class DrxError extends Error {
-  code: string
-  file?: string
-  line?: number
-  column?: number
-  hint?: string
+  code: string;
+  file?: string;
+  line?: number;
+  column?: number;
+  hint?: string;
 }
 ```
 
@@ -2915,17 +2949,17 @@ ed fn Counter()
 Debe generar:
 
 ```tsx
-import { useState } from "react"
+import { useState } from "react";
 
 export default function Counter() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
     <main className="p-6">
       <h1>Contador</h1>
       <button onClick={() => setCount(count + 1)}>Sumar</button>
     </main>
-  )
+  );
 }
 ```
 
@@ -2967,15 +3001,15 @@ He añadido esto a la documentación.
 La configuración podría quedar así:
 
 {
-  "componentAliases": {
-    "Ca": "Card",
-    "LC": "ListCard",
-    "ImgC": "ImageCard",
-    "FtC": "FeatureCard",
-    "Btn": "Button",
-    "In": "Input",
-    "Md": "Modal"
-  }
+"componentAliases": {
+"Ca": "Card",
+"LC": "ListCard",
+"ImgC": "ImageCard",
+"FtC": "FeatureCard",
+"Btn": "Button",
+"In": "Input",
+"Md": "Modal"
+}
 }
 
 Y una regla importante:
@@ -3019,12 +3053,12 @@ i Card f "@/components/Card"
 Más adelante sí se podría hacer auto-import:
 
 {
-  "componentAliases": {
-    "Ca": {
-      "name": "Card",
-      "import": "@/components/Card"
-    }
-  }
+"componentAliases": {
+"Ca": {
+"name": "Card",
+"import": "@/components/Card"
+}
+}
 }
 
 Entonces usando:

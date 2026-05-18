@@ -75,4 +75,3 @@ Outputs:
 - `.drx/manifest.json`: machine-readable project summary.
 
 This is the part that lets an AI understand a large project with fewer tokens. The AI should read `.drx/ai-context.md` and the relevant `.drx` files before implementing changes.
-

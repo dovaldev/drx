@@ -1,37 +1,65 @@
-import fg from "fast-glob"
-import fs from "node:fs/promises"
-import path from "node:path"
-import { DrxConfig } from "./config.js"
+import fg from "fast-glob";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { DrxConfig } from "./config.js";
 
 type ProjectSummary = {
-  generatedAt: string
-  sourceDir: string
-  outDir: string
-  drxFiles: string[]
-  tsxFiles: string[]
-  contentFiles: string[]
-  configFiles: string[]
-  routes: string[]
-  components: string[]
-  apiFiles: string[]
-  symbols: ProjectSymbol[]
-}
+  generatedAt: string;
+  sourceDir: string;
+  outDir: string;
+  drxFiles: string[];
+  tsxFiles: string[];
+  contentFiles: string[];
+  configFiles: string[];
+  routes: string[];
+  components: string[];
+  apiFiles: string[];
+  symbols: ProjectSymbol[];
+};
 
 type ProjectSymbol = {
-  name: string
-  kind: "default-function" | "function" | "exported-function" | "state" | "effect" | "import"
-  file: string
-  line: number
-}
+  name: string;
+  kind:
+    | "default-function"
+    | "function"
+    | "exported-function"
+    | "state"
+    | "effect"
+    | "import";
+  file: string;
+  line: number;
+};
 
 export async function generateAiContext(cwd: string, config: DrxConfig) {
-  const drxRoot = path.join(cwd, config.sourceDir)
-  const outRoot = path.join(cwd, config.outDir)
-  const drxFiles = await listFiles(drxRoot, "**/*.drx", cwd)
-  const tsxFiles = await listFiles(outRoot, ["**/*.{tsx,jsx}", "**/route.{ts,js}"], cwd, config.ignore)
-  const contentFiles = await listFiles(outRoot, ["**/*.{md,mdx}", "content/**/*"], cwd, config.ignore)
-  const configFiles = await listFiles(cwd, ["next.config.*", "vite.config.*", "theme.config.*", "tailwind.config.*", "postcss.config.*", "package.json"], cwd, config.ignore)
-  const symbols = await collectDrxSymbols(cwd, drxFiles)
+  const drxRoot = path.join(cwd, config.sourceDir);
+  const outRoot = path.join(cwd, config.outDir);
+  const drxFiles = await listFiles(drxRoot, "**/*.drx", cwd);
+  const tsxFiles = await listFiles(
+    outRoot,
+    ["**/*.{tsx,jsx}", "**/route.{ts,js}"],
+    cwd,
+    config.ignore,
+  );
+  const contentFiles = await listFiles(
+    outRoot,
+    ["**/*.{md,mdx}", "content/**/*"],
+    cwd,
+    config.ignore,
+  );
+  const configFiles = await listFiles(
+    cwd,
+    [
+      "next.config.*",
+      "vite.config.*",
+      "theme.config.*",
+      "tailwind.config.*",
+      "postcss.config.*",
+      "package.json",
+    ],
+    cwd,
+    config.ignore,
+  );
+  const symbols = await collectDrxSymbols(cwd, drxFiles);
   const summary: ProjectSummary = {
     generatedAt: new Date().toISOString(),
     sourceDir: config.sourceDir,
@@ -42,42 +70,68 @@ export async function generateAiContext(cwd: string, config: DrxConfig) {
     configFiles,
     routes: findRoutes(drxFiles, tsxFiles, contentFiles),
     components: findComponents(drxFiles, tsxFiles),
-    apiFiles: tsxFiles.filter((file) => /(^|\/)(api|route)\//.test(file) || file.endsWith("/route.ts") || file.endsWith("/route.tsx")),
-    symbols
-  }
+    apiFiles: tsxFiles.filter(
+      (file) =>
+        /(^|\/)(api|route)\//.test(file) ||
+        file.endsWith("/route.ts") ||
+        file.endsWith("/route.tsx"),
+    ),
+    symbols,
+  };
 
-  const metaDir = path.join(cwd, ".drx")
-  await fs.mkdir(metaDir, { recursive: true })
-  await fs.writeFile(path.join(metaDir, "rules.md"), rulesMarkdown(config))
-  await fs.writeFile(path.join(metaDir, "manifest.json"), JSON.stringify(summary, null, 2))
-  await fs.writeFile(path.join(metaDir, "ai-context.md"), contextMarkdown(summary, config))
-  return summary
+  const metaDir = path.join(cwd, ".drx");
+  await fs.mkdir(metaDir, { recursive: true });
+  await fs.writeFile(path.join(metaDir, "rules.md"), rulesMarkdown(config));
+  await fs.writeFile(
+    path.join(metaDir, "manifest.json"),
+    JSON.stringify(summary, null, 2),
+  );
+  await fs.writeFile(
+    path.join(metaDir, "ai-context.md"),
+    contextMarkdown(summary, config),
+  );
+  return summary;
 }
 
-async function listFiles(root: string, pattern: string | string[], cwd: string, ignore: string[] = []) {
-  if (!(await pathExists(root))) return []
-  return fg(pattern, { cwd: root, absolute: true, ignore }).then((files) => files.map((file) => path.relative(cwd, file)).sort())
+async function listFiles(
+  root: string,
+  pattern: string | string[],
+  cwd: string,
+  ignore: string[] = [],
+) {
+  if (!(await pathExists(root))) return [];
+  return fg(pattern, { cwd: root, absolute: true, ignore }).then((files) =>
+    files.map((file) => path.relative(cwd, file)).sort(),
+  );
 }
 
 async function pathExists(p: string) {
   try {
-    await fs.access(p)
-    return true
+    await fs.access(p);
+    return true;
   } catch {
-    return false
+    return false;
   }
 }
 
-function findRoutes(drxFiles: string[], tsxFiles: string[], contentFiles: string[]) {
+function findRoutes(
+  drxFiles: string[],
+  tsxFiles: string[],
+  contentFiles: string[],
+) {
   return [...drxFiles, ...tsxFiles, ...contentFiles]
-    .filter((file) => /(^|\/)app\/.*(page|layout|route)\.(drx|tsx|ts|jsx|js)$/.test(file) || /(^|\/)pages\/.+\.(drx|tsx|jsx|mdx|md)$/.test(file))
-    .sort()
+    .filter(
+      (file) =>
+        /(^|\/)app\/.*(page|layout|route)\.(drx|tsx|ts|jsx|js)$/.test(file) ||
+        /(^|\/)pages\/.+\.(drx|tsx|jsx|mdx|md)$/.test(file),
+    )
+    .sort();
 }
 
 function findComponents(drxFiles: string[], tsxFiles: string[]) {
   return [...drxFiles, ...tsxFiles]
     .filter((file) => /(^|\/)components\/.+\.(drx|tsx|ts|jsx|js)$/.test(file))
-    .sort()
+    .sort();
 }
 
 function contextMarkdown(summary: ProjectSummary, config: DrxConfig) {
@@ -137,7 +191,7 @@ ${aliasList(config.tagAliases)}
 ### Events
 
 ${aliasList(config.eventAliases)}
-`
+`;
 }
 
 function rulesMarkdown(config: DrxConfig) {
@@ -167,52 +221,77 @@ Prefer readable names. Use \`raw\` for unsupported syntax.
 Known tag aliases:
 
 ${aliasList(config.tagAliases)}
-`
+`;
 }
 
 function list(items: string[]) {
-  return items.length ? items.map((item) => `- \`${item}\``).join("\n") : "- None found"
+  return items.length
+    ? items.map((item) => `- \`${item}\``).join("\n")
+    : "- None found";
 }
 
 async function collectDrxSymbols(cwd: string, files: string[]) {
-  const symbols: ProjectSymbol[] = []
+  const symbols: ProjectSymbol[] = [];
   for (const file of files) {
-    const source = await fs.readFile(path.join(cwd, file), "utf8")
+    const source = await fs.readFile(path.join(cwd, file), "utf8");
     source.split(/\r?\n/).forEach((line, index) => {
-      const trimmed = line.trim()
-      const fn = trimmed.match(/^(ed|ex)?\s*(async\s+)?fn\s+([A-Za-z_$][\w$]*)\(/)
+      const trimmed = line.trim();
+      const fn = trimmed.match(
+        /^(ed|ex)?\s*(async\s+)?fn\s+([A-Za-z_$][\w$]*)\(/,
+      );
       if (fn) {
         symbols.push({
           name: fn[3],
-          kind: fn[1] === "ed" ? "default-function" : fn[1] === "ex" ? "exported-function" : "function",
+          kind:
+            fn[1] === "ed"
+              ? "default-function"
+              : fn[1] === "ex"
+                ? "exported-function"
+                : "function",
           file,
-          line: index + 1
-        })
-        return
+          line: index + 1,
+        });
+        return;
       }
-      const state = trimmed.match(/^st\s+([A-Za-z_$][\w$]*)\s*=/)
+      const state = trimmed.match(/^st\s+([A-Za-z_$][\w$]*)\s*=/);
       if (state) {
-        symbols.push({ name: state[1], kind: "state", file, line: index + 1 })
-        return
+        symbols.push({ name: state[1], kind: "state", file, line: index + 1 });
+        return;
       }
       if (/^ef\s+\[/.test(trimmed)) {
-        symbols.push({ name: "useEffect", kind: "effect", file, line: index + 1 })
-        return
+        symbols.push({
+          name: "useEffect",
+          kind: "effect",
+          file,
+          line: index + 1,
+        });
+        return;
       }
-      const imported = trimmed.match(/^i\s+(.+)\s+f\s+(.+)$/)
-      if (imported) symbols.push({ name: imported[1], kind: "import", file, line: index + 1 })
-    })
+      const imported = trimmed.match(/^i\s+(.+)\s+f\s+(.+)$/);
+      if (imported)
+        symbols.push({
+          name: imported[1],
+          kind: "import",
+          file,
+          line: index + 1,
+        });
+    });
   }
-  return symbols
+  return symbols;
 }
 
 function symbolList(symbols: ProjectSymbol[]) {
-  if (!symbols.length) return "- None found"
-  return symbols.map((symbol) => `- \`${symbol.name}\` (${symbol.kind}) in \`${symbol.file}:${symbol.line}\``).join("\n")
+  if (!symbols.length) return "- None found";
+  return symbols
+    .map(
+      (symbol) =>
+        `- \`${symbol.name}\` (${symbol.kind}) in \`${symbol.file}:${symbol.line}\``,
+    )
+    .join("\n");
 }
 
 function aliasList(record: Record<string, string>) {
   return Object.entries(record)
     .map(([key, value]) => `- \`${key}\` -> \`${value}\``)
-    .join("\n")
+    .join("\n");
 }

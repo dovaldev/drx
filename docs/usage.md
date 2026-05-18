@@ -67,13 +67,7 @@ Use:
   "sourceDir": "src-drx",
   "outDir": ".",
   "framework": "next",
-  "ignore": [
-    "node_modules/**",
-    ".next/**",
-    "dist/**",
-    ".drx/**",
-    "src-drx/**"
-  ]
+  "ignore": ["node_modules/**", ".next/**", "dist/**", ".drx/**", "src-drx/**"]
 }
 ```
 
@@ -158,4 +152,3 @@ pnpm drx expand
 pnpm test
 pnpm build
 ```
-

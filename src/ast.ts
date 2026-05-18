@@ -1,8 +1,8 @@
 export type Program = {
-  nodes: Node[]
-  usesState: boolean
-  usesEffect: boolean
-}
+  nodes: Node[];
+  usesState: boolean;
+  usesEffect: boolean;
+};
 
 export type Node =
   | DirectiveNode
@@ -10,24 +10,40 @@ export type Node =
   | FunctionNode
   | StatementNode
   | RawNode
-  | CommentNode
+  | CommentNode;
 
-export type DirectiveNode = { type: "directive"; value: string }
-export type ImportNode = { type: "import"; imported: string; source: string; line: number }
+export type DirectiveNode = { type: "directive"; value: string };
+export type ImportNode = {
+  type: "import";
+  imported: string;
+  source: string;
+  line: number;
+};
 export type FunctionNode = {
-  type: "function"
-  name: string
-  typeParams?: string
-  params: string
-  async: boolean
-  exportDefault: boolean
-  exportNamed: boolean
-  body: FunctionBodyNode[]
-  line: number
-}
-export type FunctionBodyNode = StatementNode | UiNode | RawNode | EffectNode | CommentNode
-export type StatementNode = { type: "statement"; code: string; line: number }
-export type RawNode = { type: "raw"; code: string; line: number }
-export type CommentNode = { type: "comment"; code: string; line: number }
-export type EffectNode = { type: "effect"; deps: string; code: string; line: number }
-export type UiNode = { type: "ui"; jsx: string; line: number }
+  type: "function";
+  name: string;
+  typeParams?: string;
+  params: string;
+  returnType?: string;
+  async: boolean;
+  exportDefault: boolean;
+  exportNamed: boolean;
+  body: FunctionBodyNode[];
+  line: number;
+};
+export type FunctionBodyNode =
+  | StatementNode
+  | UiNode
+  | RawNode
+  | EffectNode
+  | CommentNode;
+export type StatementNode = { type: "statement"; code: string; line: number };
+export type RawNode = { type: "raw"; code: string; line: number };
+export type CommentNode = { type: "comment"; code: string; line: number };
+export type EffectNode = {
+  type: "effect";
+  deps: string;
+  code: string;
+  line: number;
+};
+export type UiNode = { type: "ui"; jsx: string; line: number };

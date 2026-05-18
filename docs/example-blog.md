@@ -24,13 +24,7 @@ Because this project does not use `src/`, its `drx.config.json` uses:
   "sourceDir": "src-drx",
   "outDir": ".",
   "framework": "next",
-  "ignore": [
-    "node_modules/**",
-    ".next/**",
-    "dist/**",
-    ".drx/**",
-    "src-drx/**"
-  ]
+  "ignore": ["node_modules/**", ".next/**", "dist/**", ".drx/**", "src-drx/**"]
 }
 ```
 
@@ -81,4 +75,3 @@ The AI context includes:
 ## Notes
 
 `import type` and side-effect CSS imports are preserved through `raw` blocks. This is intentional because those imports carry semantics that should not be compressed unsafely.
-

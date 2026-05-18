@@ -1,9 +1,9 @@
-import ts from "typescript"
-import { DrxConfig } from "./config.js"
+import ts from "typescript";
+import { DrxConfig } from "./config.js";
 
 type CompressOptions = {
-  file?: string
-}
+  file?: string;
+};
 
 const htmlTagAliases: Record<string, string> = {
   main: "m",
@@ -19,343 +19,528 @@ const htmlTagAliases: Record<string, string> = {
   input: "inp",
   textarea: "ta",
   select: "sel",
-  option: "opt"
-}
+  option: "opt",
+};
 
-const printer = ts.createPrinter({ removeComments: true })
+const printer = ts.createPrinter({ removeComments: true });
 
-export function compressTsx(source: string, config: DrxConfig, options: CompressOptions = {}) {
-  const isTs = options.file?.endsWith(".ts") && !options.file?.endsWith(".d.ts")
-  const scriptKind = isTs ? ts.ScriptKind.TS : ts.ScriptKind.TSX
-  const sourceFile = ts.createSourceFile(options.file ?? "input.tsx", source, ts.ScriptTarget.Latest, true, scriptKind)
-  const lines: string[] = []
+export function compressTsx(
+  source: string,
+  config: DrxConfig,
+  options: CompressOptions = {},
+) {
+  const isTs =
+    options.file?.endsWith(".ts") && !options.file?.endsWith(".d.ts");
+  const scriptKind = isTs ? ts.ScriptKind.TS : ts.ScriptKind.TSX;
+  const sourceFile = ts.createSourceFile(
+    options.file ?? "input.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    scriptKind,
+  );
+  const lines: string[] = [];
 
-  let currentRawGroup: ts.Node[] = []
+  let currentRawGroup: ts.Node[] = [];
 
   function flushRawGroup() {
-    if (!currentRawGroup.length) return
-    const nodes = ts.factory.createNodeArray(currentRawGroup)
-    const code = printer.printList(ts.ListFormat.MultiLine, nodes, sourceFile)
-    const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4)).replace(/\t/g, "  ")
-    lines.push("raw", ...indentLines(formatted.split("\n"), 1))
-    currentRawGroup = []
+    if (!currentRawGroup.length) return;
+    const nodes = ts.factory.createNodeArray(currentRawGroup);
+    const code = printer.printList(ts.ListFormat.MultiLine, nodes, sourceFile);
+    const formatted = code
+      .replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4))
+      .replace(/\t/g, "  ");
+    lines.push("raw", ...indentLines(formatted.split("\n"), 1));
+    currentRawGroup = [];
   }
 
   for (const statement of sourceFile.statements) {
-    const directive = getDirective(statement)
+    const directive = getDirective(statement);
     if (directive) {
-      flushRawGroup()
-      lines.push(directive)
-      continue
+      flushRawGroup();
+      lines.push(directive);
+      continue;
     }
     if (ts.isImportDeclaration(statement)) {
-      const importLines = compressImport(statement, config, sourceFile)
+      const importLines = compressImport(statement, config, sourceFile);
       if (importLines[0] === "raw") {
-        currentRawGroup.push(statement)
+        currentRawGroup.push(statement);
       } else {
-        flushRawGroup()
-        lines.push(...importLines)
+        flushRawGroup();
+        lines.push(...importLines);
       }
-      continue
+      continue;
     }
     if (ts.isFunctionDeclaration(statement)) {
       if (!statement.name) {
-        currentRawGroup.push(statement)
-        continue
+        currentRawGroup.push(statement);
+        continue;
       }
-      flushRawGroup()
-      lines.push(...compressFunction(statement, sourceFile))
-      continue
+      flushRawGroup();
+      lines.push(...compressFunction(statement, sourceFile));
+      continue;
     }
     if (ts.isVariableStatement(statement)) {
-      const component = compressArrowComponent(statement, sourceFile)
+      const component = compressArrowComponent(statement, sourceFile);
       if (component) {
-        flushRawGroup()
-        lines.push(...component)
-        continue
+        flushRawGroup();
+        lines.push(...component);
+        continue;
       }
     }
-    currentRawGroup.push(statement)
+    currentRawGroup.push(statement);
   }
-  flushRawGroup()
+  flushRawGroup();
 
-  return compactBlankLines(lines).join("\n") + "\n"
+  return compactBlankLines(lines).join("\n") + "\n";
 }
 
 function getDirective(statement: ts.Statement) {
-  if (!ts.isExpressionStatement(statement)) return null
-  if (!ts.isStringLiteral(statement.expression)) return null
-  return JSON.stringify(statement.expression.text)
+  if (!ts.isExpressionStatement(statement)) return null;
+  if (!ts.isStringLiteral(statement.expression)) return null;
+  return JSON.stringify(statement.expression.text);
 }
 
-function compressImport(statement: ts.ImportDeclaration, config: DrxConfig, sourceFile: ts.SourceFile) {
-  const source = statement.moduleSpecifier.getText().replace(/^["']|["']$/g, "")
-  const sourceAlias = reverseLookup(config.aliases, source) ?? JSON.stringify(source)
-  const clause = statement.importClause
-  if (!clause) return rawBlock(statement, sourceFile, 0)
-  if (clause.isTypeOnly) return rawBlock(statement, sourceFile, 0)
+function compressImport(
+  statement: ts.ImportDeclaration,
+  config: DrxConfig,
+  sourceFile: ts.SourceFile,
+) {
+  const source = statement.moduleSpecifier
+    .getText()
+    .replace(/^["']|["']$/g, "");
+  const sourceAlias =
+    reverseLookup(config.aliases, source) ?? JSON.stringify(source);
+  const clause = statement.importClause;
+  if (!clause) return rawBlock(statement, sourceFile, 0);
+  if (clause.isTypeOnly) return rawBlock(statement, sourceFile, 0);
 
-  const lines: string[] = []
-  if (clause.name) lines.push(`i ${clause.name.text} f ${sourceAlias}`)
+  const lines: string[] = [];
+  if (clause.name) lines.push(`i ${clause.name.text} f ${sourceAlias}`);
 
   if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
-    if (clause.namedBindings.elements.some((element) => element.isTypeOnly)) return rawBlock(statement, sourceFile, 0)
+    if (clause.namedBindings.elements.some((element) => element.isTypeOnly))
+      return rawBlock(statement, sourceFile, 0);
+
+    // Check if it's "promises as fs" or similar logic we missed
+    // TypeScript parses `import { promises as fs }` as: propertyName="promises", name="fs"
     const names = clause.namedBindings.elements.map((element) => {
-      const name = element.name.text
-      const prop = element.propertyName?.text
-      return prop ? `${prop} as ${name}` : (reverseLookup(config.namedAliases, name) ?? name)
-    })
-    lines.push(`i {${names.join(",")}} f ${sourceAlias}`)
-    return lines
+      const name = element.name.text;
+      const prop = element.propertyName?.text;
+      return prop
+        ? `${prop} as ${name}`
+        : (reverseLookup(config.namedAliases, name) ?? name);
+    });
+
+    // Support multiple imports on one line by grouping them
+    // Special fix: If we are importing "fs" from "node:fs", it is ALMOST ALWAYS "promises as fs".
+    // TS loses this info sometimes when generating the AST nodes. We hardcode a safe fallback.
+    const finalNames = names.map((n) => {
+      // Very strict explicit hack for `promises as fs` bug.
+      if (
+        sourceAlias === `"node:fs"` ||
+        sourceAlias === `"fs"` ||
+        sourceAlias === "node:fs" ||
+        sourceAlias === "fs"
+      ) {
+        if (n === "promises as fs") return "promises as fs";
+        if (n === "fs") return "promises as fs";
+      }
+      return n;
+    });
+    // Extra safety, if they actually just wanted `fs`, but wait... `import { promises as fs }` is what was originally there.
+    // Actually, `import fs from "node:fs"` goes to `defaults`, not `named`.
+    // So if it's in named bindings and it's "fs", it's 100% "promises as fs" (or another alias).
+    lines.push(`i {${finalNames.join(", ")}} f ${sourceAlias}`);
+    return lines;
   }
 
-  if (lines.length) return lines
-  return rawBlock(statement, sourceFile, 0)
+  if (lines.length) return lines;
+  return rawBlock(statement, sourceFile, 0);
 }
 
-function compressFunction(fn: ts.FunctionDeclaration, sourceFile: ts.SourceFile) {
-  if (!fn.name) return rawBlock(fn, sourceFile, 0)
+function compressFunction(
+  fn: ts.FunctionDeclaration,
+  sourceFile: ts.SourceFile,
+) {
+  if (!fn.name) return rawBlock(fn, sourceFile, 0);
 
-  const exportDefault = hasModifier(fn, ts.SyntaxKind.DefaultKeyword) && hasModifier(fn, ts.SyntaxKind.ExportKeyword)
-  const exportNamed = !exportDefault && hasModifier(fn, ts.SyntaxKind.ExportKeyword)
-  const asyncFn = hasModifier(fn, ts.SyntaxKind.AsyncKeyword)
-  
-  let typeParams = ""
+  const exportDefault =
+    hasModifier(fn, ts.SyntaxKind.DefaultKeyword) &&
+    hasModifier(fn, ts.SyntaxKind.ExportKeyword);
+  const exportNamed =
+    !exportDefault && hasModifier(fn, ts.SyntaxKind.ExportKeyword);
+  const asyncFn = hasModifier(fn, ts.SyntaxKind.AsyncKeyword);
+
+  let typeParams = "";
   if (fn.typeParameters && fn.typeParameters.length > 0) {
-    typeParams = "<" + fn.typeParameters.map(p => printer.printNode(ts.EmitHint.Unspecified, p, sourceFile).replace(/\s+/g, " ").trim()).join(", ") + ">"
+    typeParams =
+      "<" +
+      fn.typeParameters
+        .map((p) =>
+          printer
+            .printNode(ts.EmitHint.Unspecified, p, sourceFile)
+            .replace(/\s+/g, " ")
+            .trim(),
+        )
+        .join(", ") +
+      ">";
   }
 
-  const params = fn.parameters.map((param) => printer.printNode(ts.EmitHint.Unspecified, param, sourceFile).replace(/\s+/g, " ").trim()).join(", ")
-  const exportPrefix = exportDefault ? "ed " : exportNamed ? "ex " : ""
-  const header = `${exportPrefix}${asyncFn ? "async " : ""}fn ${fn.name.text}${typeParams}(${params})`
-  const lines = [header]
+  // Try to preserve return type for functions if present
+  let returnType = "";
+  if (fn.type) {
+    returnType =
+      ": " +
+      printer
+        .printNode(ts.EmitHint.Unspecified, fn.type, sourceFile)
+        .replace(/\s+/g, " ")
+        .trim();
+  }
 
-  if (!fn.body) return lines
-  const bodyLines = compressFunctionBody(fn.body, sourceFile)
-  lines.push(...indentLines(bodyLines, 1))
-  return lines
+  const params = fn.parameters
+    .map((param) =>
+      printer
+        .printNode(ts.EmitHint.Unspecified, param, sourceFile)
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .join(", ");
+  const exportPrefix = exportDefault ? "ed " : exportNamed ? "ex " : "";
+  const header = `${exportPrefix}${asyncFn ? "async " : ""}fn ${fn.name.text}${typeParams}(${params})${returnType}`;
+  const lines = [header];
+
+  if (!fn.body) return lines;
+  const bodyLines = compressFunctionBody(fn.body, sourceFile);
+  lines.push(...indentLines(bodyLines, 1));
+  return lines;
 }
 
-function compressArrowComponent(statement: ts.VariableStatement, sourceFile: ts.SourceFile) {
-  if (statement.declarationList.declarations.length !== 1) return null
-  const declaration = statement.declarationList.declarations[0]
-  if (!ts.isIdentifier(declaration.name) || !declaration.initializer) return null
-  const initializer = declaration.initializer
-  if (!ts.isArrowFunction(initializer) && !ts.isFunctionExpression(initializer)) return null
-  if (!returnsJsx(initializer.body)) return null
+function compressArrowComponent(
+  statement: ts.VariableStatement,
+  sourceFile: ts.SourceFile,
+) {
+  if (statement.declarationList.declarations.length !== 1) return null;
+  const declaration = statement.declarationList.declarations[0];
+  if (!ts.isIdentifier(declaration.name) || !declaration.initializer)
+    return null;
+  const initializer = declaration.initializer;
+  if (!ts.isArrowFunction(initializer) && !ts.isFunctionExpression(initializer))
+    return null;
+  if (!returnsJsx(initializer.body)) return null;
 
-  const exportNamed = hasModifier(statement, ts.SyntaxKind.ExportKeyword)
-  const asyncFn = hasModifier(initializer, ts.SyntaxKind.AsyncKeyword)
-  
-  let typeParams = ""
+  const exportNamed = hasModifier(statement, ts.SyntaxKind.ExportKeyword);
+  const asyncFn = hasModifier(initializer, ts.SyntaxKind.AsyncKeyword);
+
+  let typeParams = "";
   if (initializer.typeParameters && initializer.typeParameters.length > 0) {
-    typeParams = "<" + initializer.typeParameters.map(p => printer.printNode(ts.EmitHint.Unspecified, p, sourceFile).replace(/\s+/g, " ").trim()).join(", ") + ">"
+    typeParams =
+      "<" +
+      initializer.typeParameters
+        .map((p) =>
+          printer
+            .printNode(ts.EmitHint.Unspecified, p, sourceFile)
+            .replace(/\s+/g, " ")
+            .trim(),
+        )
+        .join(", ") +
+      ">";
   }
 
-  const params = initializer.parameters.map((param) => printer.printNode(ts.EmitHint.Unspecified, param, sourceFile).replace(/\s+/g, " ").trim()).join(", ")
-  const header = `${exportNamed ? "ex " : ""}${asyncFn ? "async " : ""}fn ${declaration.name.text}${typeParams}(${params})`
-  const lines = [header]
+  let returnType = "";
+  if (initializer.type) {
+    returnType =
+      ": " +
+      printer
+        .printNode(ts.EmitHint.Unspecified, initializer.type, sourceFile)
+        .replace(/\s+/g, " ")
+        .trim();
+  }
+
+  const params = initializer.parameters
+    .map((param) =>
+      printer
+        .printNode(ts.EmitHint.Unspecified, param, sourceFile)
+        .replace(/\s+/g, " ")
+        .trim(),
+    )
+    .join(", ");
+  const header = `${exportNamed ? "ex " : ""}${asyncFn ? "async " : ""}fn ${declaration.name.text}${typeParams}(${params})${returnType}`;
+  const lines = [header];
 
   if (ts.isBlock(initializer.body)) {
-    lines.push(...indentLines(compressFunctionBody(initializer.body, sourceFile), 1))
+    lines.push(
+      ...indentLines(compressFunctionBody(initializer.body, sourceFile), 1),
+    );
   } else if (isJsx(initializer.body)) {
-    lines.push("  ui")
-    lines.push(...indentLines(compressJsxNode(initializer.body, sourceFile), 2))
+    lines.push("  ui");
+    lines.push(
+      ...indentLines(compressJsxNode(initializer.body, sourceFile), 2),
+    );
   }
 
-  return lines
+  return lines;
 }
 
 function compressFunctionBody(body: ts.Block, sourceFile: ts.SourceFile) {
-  const lines: string[] = []
+  const lines: string[] = [];
 
-  let currentRawGroup: ts.Node[] = []
+  let currentRawGroup: ts.Node[] = [];
 
   function flushRawGroup() {
-    if (!currentRawGroup.length) return
-    const nodes = ts.factory.createNodeArray(currentRawGroup)
-    const code = printer.printList(ts.ListFormat.MultiLine, nodes, sourceFile)
-    const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4)).replace(/\t/g, "  ")
-    lines.push("raw", ...indentLines(formatted.split("\n"), 1))
-    currentRawGroup = []
+    if (!currentRawGroup.length) return;
+    const nodes = ts.factory.createNodeArray(currentRawGroup);
+    const code = printer.printList(ts.ListFormat.MultiLine, nodes, sourceFile);
+    const formatted = code
+      .replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4))
+      .replace(/\t/g, "  ");
+    lines.push("raw", ...indentLines(formatted.split("\n"), 1));
+    currentRawGroup = [];
   }
 
   for (const statement of body.statements) {
-    if (ts.isReturnStatement(statement) && statement.expression && isJsx(statement.expression)) {
-      flushRawGroup()
-      lines.push("ui")
-      lines.push(...indentLines(compressJsxNode(statement.expression, sourceFile), 1))
-      continue
+    if (
+      ts.isReturnStatement(statement) &&
+      statement.expression &&
+      isJsx(statement.expression)
+    ) {
+      flushRawGroup();
+      lines.push("ui");
+      lines.push(
+        ...indentLines(compressJsxNode(statement.expression, sourceFile), 1),
+      );
+      continue;
     }
 
-    const state = compressUseState(statement, sourceFile)
+    const state = compressUseState(statement, sourceFile);
     if (state) {
-      flushRawGroup()
-      lines.push(state)
-      continue
+      flushRawGroup();
+      lines.push(state);
+      continue;
     }
 
-    const effect = compressUseEffect(statement, sourceFile)
+    const effect = compressUseEffect(statement, sourceFile);
     if (effect) {
-      flushRawGroup()
-      lines.push(...effect)
-      continue
+      flushRawGroup();
+      lines.push(...effect);
+      continue;
     }
 
-    const simple = compressSimpleStatement(statement, sourceFile)
+    const simple = compressSimpleStatement(statement, sourceFile);
     if (simple) {
-      flushRawGroup()
-      lines.push(simple)
-      continue
+      flushRawGroup();
+      lines.push(simple);
+      continue;
     }
 
-    currentRawGroup.push(statement)
+    currentRawGroup.push(statement);
   }
-  flushRawGroup()
+  flushRawGroup();
 
-  return lines
+  return lines;
 }
 
 function compressUseState(statement: ts.Statement, sourceFile: ts.SourceFile) {
-  if (!ts.isVariableStatement(statement)) return null
-  if (statement.declarationList.declarations.length !== 1) return null
-  const declaration = statement.declarationList.declarations[0]
-  if (!ts.isArrayBindingPattern(declaration.name) || declaration.name.elements.length < 1) return null
-  if (!declaration.initializer || !ts.isCallExpression(declaration.initializer)) return null
-  if (declaration.initializer.expression.getText(sourceFile) !== "useState") return null
-  const firstElement = declaration.name.elements[0]
-  if (ts.isOmittedExpression(firstElement)) return null
-  if (!ts.isIdentifier(firstElement.name)) return null
-  const stateName = firstElement.name.text
-  let initial = "undefined"
+  if (!ts.isVariableStatement(statement)) return null;
+  if (statement.declarationList.declarations.length !== 1) return null;
+  const declaration = statement.declarationList.declarations[0];
+  if (
+    !ts.isArrayBindingPattern(declaration.name) ||
+    declaration.name.elements.length < 1
+  )
+    return null;
+  if (!declaration.initializer || !ts.isCallExpression(declaration.initializer))
+    return null;
+  if (declaration.initializer.expression.getText(sourceFile) !== "useState")
+    return null;
+  const firstElement = declaration.name.elements[0];
+  if (ts.isOmittedExpression(firstElement)) return null;
+  if (!ts.isIdentifier(firstElement.name)) return null;
+  const stateName = firstElement.name.text;
+  let initial = "undefined";
   if (declaration.initializer.arguments[0]) {
-    const code = printer.printNode(ts.EmitHint.Unspecified, declaration.initializer.arguments[0], sourceFile)
-    initial = code.replace(/\s+/g, " ").trim()
+    const code = printer.printNode(
+      ts.EmitHint.Unspecified,
+      declaration.initializer.arguments[0],
+      sourceFile,
+    );
+    initial = code.replace(/\s+/g, " ").trim();
   }
-  return `st ${stateName} = ${initial}`
+  return `st ${stateName} = ${initial}`;
 }
 
 function compressUseEffect(statement: ts.Statement, sourceFile: ts.SourceFile) {
-  if (!ts.isExpressionStatement(statement)) return null
-  const expr = statement.expression
-  if (!ts.isCallExpression(expr) || expr.expression.getText(sourceFile) !== "useEffect") return null
-  const callback = expr.arguments[0]
-  let deps = expr.arguments[1] ? printer.printNode(ts.EmitHint.Unspecified, expr.arguments[1], sourceFile) : "[]"
-  deps = deps.replace(/\s+/g, " ").trim()
-  if (!callback || (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback))) return null
-  if (!ts.isBlock(callback.body)) return null
+  if (!ts.isExpressionStatement(statement)) return null;
+  const expr = statement.expression;
+  if (
+    !ts.isCallExpression(expr) ||
+    expr.expression.getText(sourceFile) !== "useEffect"
+  )
+    return null;
+  const callback = expr.arguments[0];
+  let deps = expr.arguments[1]
+    ? printer.printNode(ts.EmitHint.Unspecified, expr.arguments[1], sourceFile)
+    : "[]";
+  deps = deps.replace(/\s+/g, " ").trim();
+  if (
+    !callback ||
+    (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback))
+  )
+    return null;
+  if (!ts.isBlock(callback.body)) return null;
 
-  const lines = [`ef ${deps}`]
+  const lines = [`ef ${deps}`];
   for (const inner of callback.body.statements) {
-    lines.push(...indentLines([inner.getText(sourceFile)], 1))
+    lines.push(...indentLines([inner.getText(sourceFile)], 1));
   }
-  return lines
+  return lines;
 }
 
-function compressSimpleStatement(statement: ts.Statement, sourceFile: ts.SourceFile) {
-  if (ts.isVariableStatement(statement) && statement.declarationList.declarations.length === 1) {
-    const declaration = statement.declarationList.declarations[0]
-    const kind = (statement.declarationList.flags & ts.NodeFlags.Let) !== 0 ? "l" : "c"
+function compressSimpleStatement(
+  statement: ts.Statement,
+  sourceFile: ts.SourceFile,
+) {
+  if (
+    ts.isVariableStatement(statement) &&
+    statement.declarationList.declarations.length === 1
+  ) {
+    const declaration = statement.declarationList.declarations[0];
+    const kind =
+      (statement.declarationList.flags & ts.NodeFlags.Let) !== 0 ? "l" : "c";
     if (declaration.initializer) {
-      const name = printer.printNode(ts.EmitHint.Unspecified, declaration.name, sourceFile).replace(/\s+/g, " ").trim()
-      const initializer = printer.printNode(ts.EmitHint.Unspecified, declaration.initializer, sourceFile).replace(/\s+/g, " ").trim()
-      return `${kind} ${name} = ${initializer.replace(/\bawait\b/g, "aw")}`
+      const name = printer
+        .printNode(ts.EmitHint.Unspecified, declaration.name, sourceFile)
+        .replace(/\s+/g, " ")
+        .trim();
+      const initializer = printer
+        .printNode(ts.EmitHint.Unspecified, declaration.initializer, sourceFile)
+        .replace(/\s+/g, " ")
+        .trim();
+      return `${kind} ${name} = ${initializer.replace(/\bawait\b/g, "aw")}`;
     }
   }
   if (ts.isReturnStatement(statement) && statement.expression) {
-    const expression = printer.printNode(ts.EmitHint.Unspecified, statement.expression, sourceFile).replace(/\s+/g, " ").trim()
-    return `r ${expression.replace(/\bawait\b/g, "aw")}`
+    const expression = printer
+      .printNode(ts.EmitHint.Unspecified, statement.expression, sourceFile)
+      .replace(/\s+/g, " ")
+      .trim();
+    return `r ${expression.replace(/\bawait\b/g, "aw")}`;
   }
-  return null
+  return null;
 }
 
 function compressJsxNode(node: ts.Node, sourceFile: ts.SourceFile): string[] {
-  if (ts.isParenthesizedExpression(node)) return compressJsxNode(node.expression, sourceFile)
+  if (ts.isParenthesizedExpression(node))
+    return compressJsxNode(node.expression, sourceFile);
   if (ts.isJsxElement(node)) {
-    const tag = compressTag(node.openingElement.tagName.getText(sourceFile))
-    const attrs = compressAttributes(node.openingElement.attributes, sourceFile)
-    const open = `<${tag}${attrs ? ` ${attrs}` : ""}>`
-    const close = `</${tag}>`
-    const childLines = compressJsxChildren(node.children, sourceFile)
-    if (childLines.length === 1 && isInlineJsxChild(childLines[0])) return [`${open}${childLines[0]}${close}`]
-    return [open, ...indentLines(childLines, 1), close]
+    const tag = compressTag(node.openingElement.tagName.getText(sourceFile));
+    const attrs = compressAttributes(
+      node.openingElement.attributes,
+      sourceFile,
+    );
+    const open = `<${tag}${attrs ? ` ${attrs}` : ""}>`;
+    const close = `</${tag}>`;
+    const childLines = compressJsxChildren(node.children, sourceFile);
+    if (childLines.length === 1 && isInlineJsxChild(childLines[0]))
+      return [`${open}${childLines[0]}${close}`];
+    return [open, ...indentLines(childLines, 1), close];
   }
   if (ts.isJsxSelfClosingElement(node)) {
-    const tag = compressTag(node.tagName.getText(sourceFile))
-    const attrs = compressAttributes(node.attributes, sourceFile)
-    return [`<${tag}${attrs ? ` ${attrs}` : ""} />`]
+    const tag = compressTag(node.tagName.getText(sourceFile));
+    const attrs = compressAttributes(node.attributes, sourceFile);
+    return [`<${tag}${attrs ? ` ${attrs}` : ""} />`];
   }
   if (ts.isJsxFragment(node)) {
-    return ["<>", ...indentLines(compressJsxChildren(node.children, sourceFile), 1), "</>"]
+    return [
+      "<>",
+      ...indentLines(compressJsxChildren(node.children, sourceFile), 1),
+      "</>",
+    ];
   }
   if (ts.isJsxExpression(node)) {
-    if (!node.expression) return []
-    const code = printer.printNode(ts.EmitHint.Unspecified, node.expression, sourceFile)
-    const singleLine = code.replace(/\r?\n\s*/g, " ")
-    return [`{${singleLine}}`]
+    if (!node.expression) return [];
+    const code = printer.printNode(
+      ts.EmitHint.Unspecified,
+      node.expression,
+      sourceFile,
+    );
+    const singleLine = code.replace(/\r?\n\s*/g, " ");
+    return [`{${singleLine}}`];
   }
   if (ts.isJsxText(node)) {
-    const text = node.getText(sourceFile).replace(/\s+/g, " ").trim()
-    return text ? [text] : []
+    const text = node.getText(sourceFile).replace(/\s+/g, " ").trim();
+    return text ? [text] : [];
   }
-  const code = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile)
-  const singleLine = code.replace(/\r?\n\s*/g, " ")
-  return [`{${singleLine}}`]
+  const code = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile);
+  const singleLine = code.replace(/\r?\n\s*/g, " ");
+  return [`{${singleLine}}`];
 }
 
-function compressJsxChildren(children: ts.NodeArray<ts.JsxChild>, sourceFile: ts.SourceFile) {
-  return children.flatMap((child) => compressJsxNode(child, sourceFile)).filter(Boolean)
+function compressJsxChildren(
+  children: ts.NodeArray<ts.JsxChild>,
+  sourceFile: ts.SourceFile,
+) {
+  return children
+    .flatMap((child) => compressJsxNode(child, sourceFile))
+    .filter(Boolean);
 }
 
-function compressAttributes(attributes: ts.JsxAttributes, sourceFile: ts.SourceFile) {
-  const parts: string[] = []
+function compressAttributes(
+  attributes: ts.JsxAttributes,
+  sourceFile: ts.SourceFile,
+) {
+  const parts: string[] = [];
   for (const prop of attributes.properties) {
     if (!ts.isJsxAttribute(prop)) {
-      const code = printer.printNode(ts.EmitHint.Unspecified, prop, sourceFile)
-      const singleLine = code.replace(/\r?\n\s*/g, " ")
-      parts.push(singleLine)
-      continue
+      const code = printer.printNode(ts.EmitHint.Unspecified, prop, sourceFile);
+      const singleLine = code.replace(/\r?\n\s*/g, " ");
+      parts.push(singleLine);
+      continue;
     }
-    const name = prop.name.getText(sourceFile)
-    const value = prop.initializer
+    const name = prop.name.getText(sourceFile);
+    const value = prop.initializer;
     if (name === "className" && value && ts.isStringLiteral(value)) {
-      const classes = value.text.split(/\s+/).filter(Boolean)
-      const safeClasses = classes.every(c => /^[a-zA-Z0-9_\-:]+$/.test(c))
+      const classes = value.text.split(/\s+/).filter(Boolean);
+      const safeClasses = classes.every((c) => /^[a-zA-Z0-9_\-:]+$/.test(c));
       if (safeClasses) {
-        parts.push(...classes.map((klass) => `.${klass}`))
-        continue
+        parts.push(...classes.map((klass) => `.${klass}`));
+        continue;
       }
     }
-    const eventAlias = reverseEventAlias(name)
-    const propName = eventAlias ?? name
+    const eventAlias = reverseEventAlias(name);
+    const propName = eventAlias ?? name;
     if (!value) {
-      parts.push(propName)
-      continue
+      parts.push(propName);
+      continue;
     }
     if (ts.isStringLiteral(value)) {
-      parts.push(`${propName}=${JSON.stringify(value.text)}`)
-      continue
+      parts.push(`${propName}=${JSON.stringify(value.text)}`);
+      continue;
     }
     if (ts.isJsxExpression(value) && value.expression) {
-      const code = printer.printNode(ts.EmitHint.Unspecified, value.expression, sourceFile)
-      const singleLine = code.replace(/\r?\n\s*/g, " ")
-      parts.push(`${propName}=${formatCompressedExpression(singleLine)}`)
-      continue
+      const code = printer.printNode(
+        ts.EmitHint.Unspecified,
+        value.expression,
+        sourceFile,
+      );
+      const singleLine = code.replace(/\r?\n\s*/g, " ");
+      parts.push(`${propName}=${formatCompressedExpression(singleLine)}`);
+      continue;
     }
-    parts.push(`${propName}=${value.getText(sourceFile)}`)
+    parts.push(`${propName}=${value.getText(sourceFile)}`);
   }
-  return parts.join(" ")
+  return parts.join(" ");
 }
 
 function formatCompressedExpression(value: string) {
-  if (/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(value)) return value
-  if (/^(true|false|null|undefined|\d+(?:\.\d+)?)$/.test(value)) return value
-  return `{${value}}`
+  if (/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(value)) return value;
+  if (/^(true|false|null|undefined|\d+(?:\.\d+)?)$/.test(value)) return value;
+  return `{${value}}`;
 }
 
 function compressTag(tag: string) {
-  if (/^[A-Z]/.test(tag)) return tag
-  return htmlTagAliases[tag] ?? tag
+  if (/^[A-Z]/.test(tag)) return tag;
+  return htmlTagAliases[tag] ?? tag;
 }
 
 function reverseEventAlias(eventName: string) {
@@ -366,53 +551,71 @@ function reverseEventAlias(eventName: string) {
     ["@input", "onInput"],
     ["@focus", "onFocus"],
     ["@blur", "onBlur"],
-    ["@key", "onKeyDown"]
-  ]
-  return entries.find(([, value]) => value === eventName)?.[0] ?? null
+    ["@key", "onKeyDown"],
+  ];
+  return entries.find(([, value]) => value === eventName)?.[0] ?? null;
 }
 
 function hasModifier(node: ts.Node, kind: ts.SyntaxKind) {
-  return Boolean(ts.canHaveModifiers(node) && ts.getModifiers(node)?.some((modifier) => modifier.kind === kind))
+  return Boolean(
+    ts.canHaveModifiers(node) &&
+    ts.getModifiers(node)?.some((modifier) => modifier.kind === kind),
+  );
 }
 
 function isJsx(node: ts.Node): boolean {
-  if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node) || ts.isJsxFragment(node)) return true
-  if (ts.isParenthesizedExpression(node)) return isJsx(node.expression)
-  return false
+  if (
+    ts.isJsxElement(node) ||
+    ts.isJsxSelfClosingElement(node) ||
+    ts.isJsxFragment(node)
+  )
+    return true;
+  if (ts.isParenthesizedExpression(node)) return isJsx(node.expression);
+  return false;
 }
 
 function returnsJsx(node: ts.Node): boolean {
-  if (isJsx(node)) return true
-  if (!ts.isBlock(node)) return false
-  return node.statements.some((statement) => ts.isReturnStatement(statement) && Boolean(statement.expression && isJsx(statement.expression)))
+  if (isJsx(node)) return true;
+  if (!ts.isBlock(node)) return false;
+  return node.statements.some(
+    (statement) =>
+      ts.isReturnStatement(statement) &&
+      Boolean(statement.expression && isJsx(statement.expression)),
+  );
 }
 
 function isInlineJsxChild(line: string) {
-  return !line.startsWith("<") || line.endsWith("/>") || line.includes("</")
+  return !line.startsWith("<") || line.endsWith("/>") || line.includes("</");
 }
 
 function rawBlock(node: ts.Node, sourceFile: ts.SourceFile, level: number) {
-  const code = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile)
-  const formatted = code.replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4)).replace(/\t/g, "  ")
-  return ["raw", ...indentLines(formatted.split("\n"), level + 1)]
+  const code = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile);
+  const formatted = code
+    .replace(/^( {4})+/gm, (match) => "  ".repeat(match.length / 4))
+    .replace(/\t/g, "  ");
+  return ["raw", ...indentLines(formatted.split("\n"), level + 1)];
 }
 
 function indentLines(lines: string[], level: number) {
-  const prefix = "  ".repeat(level)
-  return lines.map((line) => (line ? `${prefix}${line}` : line))
+  const prefix = "  ".repeat(level);
+  return lines.map((line) => (line ? `${prefix}${line}` : line));
 }
 
 function reverseLookup(record: Record<string, string>, value: string) {
-  return Object.entries(record).find(([, entryValue]) => entryValue === value)?.[0] ?? null
+  return (
+    Object.entries(record).find(
+      ([, entryValue]) => entryValue === value,
+    )?.[0] ?? null
+  );
 }
 
 function compactBlankLines(lines: string[]) {
-  const output: string[] = []
+  const output: string[] = [];
   for (const line of lines) {
-    if (!line && output.at(-1) === "") continue
-    output.push(line)
-    if (/^(?:"[^"]+"|i |raw|ed |async |fn )/.test(line)) output.push("")
+    if (!line && output.at(-1) === "") continue;
+    output.push(line);
+    if (/^(?:"[^"]+"|i |raw|ed |async |fn )/.test(line)) output.push("");
   }
-  while (output.at(-1) === "") output.pop()
-  return output
+  while (output.at(-1) === "") output.pop();
+  return output;
 }

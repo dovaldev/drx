@@ -65,4 +65,3 @@ st s = null
 ```
 
 Semantic names help the AI understand the project.
-
