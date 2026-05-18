@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { setterName, replaceAw, normalizeParams, splitTopLevel } from "../src/strings.js";
+import {
+  setterName,
+  replaceAw,
+  normalizeParams,
+  splitTopLevel,
+} from "../src/strings.js";
 
 describe("strings utilities", () => {
   it("generates correct setter names", () => {
@@ -23,7 +28,7 @@ describe("strings utilities", () => {
     expect(tokens).toEqual([
       ".p-4",
       '@click={() => console.log("hi")}',
-      "data={{a: 1}}"
+      "data={{a: 1}}",
     ]);
   });
 });

@@ -14,12 +14,14 @@ describe("loadConfig", () => {
 
   it("merges user config with default config", async () => {
     vi.mocked(fs.access).mockResolvedValue(undefined);
-    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({
-      framework: "react",
-      aliases: {
-        "custom": "custom-package"
-      }
-    }));
+    vi.mocked(fs.readFile).mockResolvedValue(
+      JSON.stringify({
+        framework: "react",
+        aliases: {
+          custom: "custom-package",
+        },
+      }),
+    );
 
     const config = await loadConfig();
     expect(config.framework).toBe("react");

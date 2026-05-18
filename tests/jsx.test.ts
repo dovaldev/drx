@@ -35,7 +35,7 @@ describe("transformJsxLite", () => {
       "1:if show",
       "2:  <p>Visible</p>",
       "3:for items as item",
-      "4:  <p>{item}</p>"
+      "4:  <p>{item}</p>",
     ];
     const output = transformJsxLite(input, defaultConfig);
     expect(output).toContain("{show && (");
@@ -43,15 +43,19 @@ describe("transformJsxLite", () => {
   });
 
   it("handles complex attributes and nested braces", () => {
-    const input = ['1:<Card data={{ a: 1 }} @click={() => console.log("hi")} />'];
+    const input = [
+      '1:<Card data={{ a: 1 }} @click={() => console.log("hi")} />',
+    ];
     const output = transformJsxLite(input, defaultConfig);
-    expect(output).toContain('data={{ a: 1 }}');
+    expect(output).toContain("data={{ a: 1 }}");
     expect(output).toContain('onClick={() => console.log("hi")}');
   });
 
   it("throws error on unknown event aliases", () => {
     const input = ["1:<btn @clik=save />"];
     expect(() => transformJsxLite(input, defaultConfig)).toThrow(DrxError);
-    expect(() => transformJsxLite(input, defaultConfig)).toThrow(/Unknown event alias "@clik"/);
+    expect(() => transformJsxLite(input, defaultConfig)).toThrow(
+      /Unknown event alias "@clik"/,
+    );
   });
 });

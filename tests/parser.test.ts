@@ -7,8 +7,14 @@ describe("parseDrx", () => {
   it("parses top-level directives", () => {
     const program = parseDrx(`"use client"\n"use strict"`, defaultConfig);
     expect(program.nodes).toHaveLength(2);
-    expect(program.nodes[0]).toMatchObject({ type: "directive", value: '"use client"' });
-    expect(program.nodes[1]).toMatchObject({ type: "directive", value: '"use strict"' });
+    expect(program.nodes[0]).toMatchObject({
+      type: "directive",
+      value: '"use client"',
+    });
+    expect(program.nodes[1]).toMatchObject({
+      type: "directive",
+      value: '"use strict"',
+    });
   });
 
   it("parses simple and multi-line imports", () => {
@@ -64,8 +70,15 @@ fn Counter()
     const program = parseDrx(source, defaultConfig);
     const fn = program.nodes[0] as any;
     expect(fn.body).toHaveLength(3);
-    expect(fn.body[0]).toMatchObject({ type: "statement", code: "const [count, setCount] = useState(0);" });
-    expect(fn.body[1]).toMatchObject({ type: "effect", deps: "[count]", code: "console.log(count)" });
+    expect(fn.body[0]).toMatchObject({
+      type: "statement",
+      code: "const [count, setCount] = useState(0);",
+    });
+    expect(fn.body[1]).toMatchObject({
+      type: "effect",
+      deps: "[count]",
+      code: "console.log(count)",
+    });
     expect(fn.body[2]).toMatchObject({ type: "ui" });
     expect(program.usesState).toBe(true);
     expect(program.usesEffect).toBe(true);
@@ -82,18 +95,28 @@ raw \`\`\`
 `.trim();
     const program = parseDrx(source, defaultConfig);
     expect(program.nodes).toHaveLength(2);
-    expect(program.nodes[0]).toMatchObject({ type: "raw", code: "const x = 1" });
-    expect(program.nodes[1]).toMatchObject({ type: "raw", code: "  const y = 2\n  const z = 3" });
+    expect(program.nodes[0]).toMatchObject({
+      type: "raw",
+      code: "const x = 1",
+    });
+    expect(program.nodes[1]).toMatchObject({
+      type: "raw",
+      code: "  const y = 2\n  const z = 3",
+    });
   });
 
   it("throws error on tabs", () => {
     expect(() => parseDrx("\tfn Test()", defaultConfig)).toThrow(DrxError);
-    expect(() => parseDrx("\tfn Test()", defaultConfig)).toThrow(/Tabs are not allowed/);
+    expect(() => parseDrx("\tfn Test()", defaultConfig)).toThrow(
+      /Tabs are not allowed/,
+    );
   });
 
   it("throws error on invalid top-level indentation", () => {
     expect(() => parseDrx("  fn Test()", defaultConfig)).toThrow(DrxError);
-    expect(() => parseDrx("  fn Test()", defaultConfig)).toThrow(/Top-level lines must not be indented/);
+    expect(() => parseDrx("  fn Test()", defaultConfig)).toThrow(
+      /Top-level lines must not be indented/,
+    );
   });
 
   it("handles auto-cleansing of odd indentation (QoL buff)", () => {
