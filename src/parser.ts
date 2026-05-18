@@ -148,12 +148,12 @@ function parseTopLevel(
     /^(?:(?:ed|ex)\s+)?(?:async\s+)?fn\s+[A-Za-z_$][\w$]*(?:<.*>)?\(/.test(
       fnText,
     ) &&
-    !fnText.endsWith(")")
+    !fnText.match(/\)\s*(?::\s*.+)?$/)
   ) {
     while (fnIndex + 1 < lines.length) {
       fnIndex++;
       fnText += " " + lines[fnIndex].text;
-      if (lines[fnIndex].text.endsWith(")")) {
+      if (lines[fnIndex].text.match(/\)\s*(?::\s*.+)?$/)) {
         break;
       }
     }
